@@ -65,11 +65,11 @@ CORS(app)
 
 # Wraps all responses together
 def api_response(data, status_code=200):
-    return jsonify({"ok": True, "data": data}), status
+    return jsonify({"ok": True, "data": data}), status_code
 
 
 def api_error(message, status_code=500):
-    return jsonify({"ok": False, "error": message}), status
+    return jsonify({"ok": False, "error": message}), status_code
 
 
 # API paths
