@@ -16,8 +16,9 @@ import threading
 import time
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
+from functools import wraps
 
 from proxmox_client import ProxmoxClient
 from collector import fetch_all
@@ -32,8 +33,23 @@ VERIFY_SSL = os.getenv("PVE_VERIFY_SSL", "false").lower() == "true"
 POLL_INTERVAL = int(os.getenv("POLL_INTERVAL", "5"))   # seconds between collections
 FLASK_PORT = int(os.getenv("FLASK_PORT", "5000"))
 
-if not PVE_API_KEY:
-    raise RuntimeError("PVE_API_KEY is not set")
+INFLUXDB_URL = os.getenv("INFLUXDB_URL", "http://localhost:8086")
+INFLUXDB_TOKEN = os.getenv("INFLUXDB_TOKEN", "")
+INFLUXDB_ORG = os.getenv("INFLUXDB_ORG", "")
+INFLUXDB_BUCKET = os.getenv("INFLUXDB_BUCKET", "proxmox")
+
+DASHBOARD_API_KEY = os.getenv("DASHBOARD_API_KEY", "")
+
+# Early validation - alert missing config early
+_missing = [name for name, val in {
+    "PVE_API_KEY": PVE_API_KEY,
+    "INFLUXDB_TOKEN": INFLUXDB_TOKEN,
+    "INFLUXDB_ORG": INFLUXDB_ORG,
+    "DASHBOARD_API_KEY": DASHBOARD_API_KEY
+}.items() if not val]
+
+if _missing:
+    raise RuntimeError(f"Missing required .env varaible(s): {', '.join(_missing)}")
 
 cache = DataCache()
 client = ProxmoxClient(PVE_HOST, PVE_API_TOKEN, PVE_API_KEY, VERIFY_SSL)
@@ -46,6 +62,10 @@ def collector_loop():
             data = fetch_all(client)
             cache.update(data["nodes"], data["vms"])
             print(f"[collector] OK - {len(data['nodes'])} nodes, {len(data['vms'])} VMs")
+            
+            # TODO: Add wirte to InfluxDB
+            # Write to InfluxDB
+        
         except RuntimeError as exc:
             cache.set_error(str(exc))
             print(f"[collector] ERROR - {exc}")
@@ -63,19 +83,34 @@ app = Flask(__name__)
 CORS(app)
 
 
-# Wraps all responses together
+# Wraps status and responses together
 def api_response(data, status_code=200):
     return jsonify({"ok": True, "data": data}), status_code
 
 
+# Wraps status and error message together
 def api_error(message, status_code=500):
     return jsonify({"ok": False, "error": message}), status_code
+
+
+# API Key authentication decorator for any route
+def require_api_key(func):
+    @wraps(func)
+    def decorated(*args, **kwargs):
+        key = request.headers.get("X-API-Key", "")
+        if not key:
+            return api_error("Missing X-API-Key header", 401)
+        if key != DASHBOARD_API_KEY:
+            return api_error("Invalid X-API-Key", 403)
+        return func(*args, **kwargs)
+    return decorated
 
 
 # API paths
 
 # --- /api/status --- RETURN STATUS OF API
 @app.route("/api/status")
+@require_api_key
 def status():
     state = cache.get()
     return api_response({
@@ -90,12 +125,14 @@ def status():
 # --- /api/nodes --- RETURN NODES DATA
 # all nodes data
 @app.route("/api/nodes")
+@require_api_key
 def get_nodes():
     return api_response(cache.get_nodes())
 
 
 # single specific node data
 @app.route("/api/nodes/<string:node_name>")
+@require_api_key
 def get_node(node_name):
     node = next((n for n in cache.get_nodes() if n.get("node") == node_name), None)
     if node is None:
@@ -106,12 +143,14 @@ def get_node(node_name):
 # --- /api/vms --- RETURN VIRTUAL MACHINE DATA
 # all vms data
 @app.route("/api/vms")
+@require_api_key
 def get_vms():
     return api_response(cache.get_vms())
 
 
 # single specific vms data
 @app.route("/api/vm/<int:vmid>")
+@require_api_key
 def get_vm(vmid):
     vm = next((v for v in cache.get_vms() if v.get("vmid") == vmid), None)
     if vm is None:
@@ -121,6 +160,7 @@ def get_vm(vmid):
 
 # --- /api/summary --- RETURN SUMMARIZED PROCESSED DATA
 @app.route("/api/summary")
+@require_api_key
 def get_summary():
     nodes = cache.get_nodes()
     vms = cache.get_vms()
@@ -180,4 +220,10 @@ def get_summary():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=FLASK_PORT, debug=False)
+    print(f"\n{'-'*30}")
+    print(f"    Proxmox Dashboard API")
+    print(f"    Listening: https://127.0.0.1:{FLASK_PORT}")
+    print(f"    Auth: X-API-Key required")
+    print(f"\n{'-'*30}")
+
+    app.run(host="127.0.0.1", port=FLASK_PORT,debug=False)
