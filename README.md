@@ -7,12 +7,15 @@ A real-time monitoring dashboard for Proxmox VE university-lab environments. A P
 
 ```mermaid
 flowchart TD
-    classDef primary fill:#4f6478,stroke:#378ADD
 
     subgraph server["Flask Server"]
-        APP["Flask + CORS - app.py"]
+        APP["Flask + CORS - app.py \n(e.g. localhost:5000)"]
         CACHE["DataCache (thread-safe) - cache.py"]
         THREAD["Daemon Thread - collector_loop"]
+    end
+    subgraph historical["InfluxDB - Historical Database"]
+        INFLUXWRITER["InfluxWriter - influx - \nwriter.py"]
+        INFLUXDB[("InfluxDB\n(localhost:8086)")]
     end
     PVE["Proxmox VE API (e.g. HTTPS:8006)"]
     CLIENT["ProxmoxClient - proxmox_client.py"]
@@ -27,7 +30,11 @@ flowchart TD
     APP -- "read" --> CACHE
     FRONTEND -- "poll every 5s" ---> APP
     APP -- "api_response" ---> FRONTEND
+    INFLUXWRITER -- "write" --> INFLUXDB
+    INFLUXDB -- "read" --> INFLUXWRITER
+    THREAD -- "write nodes, vms data" --> INFLUXWRITER
+    APP -- "query" --> INFLUXWRITER
+    INFLUXWRITER -- "query result" --> APP
 
-    class server primary
 ```
 

@@ -3,3 +3,4 @@ python-dotenv
 flask
 flask-cors
 urllib3
+influxdb-client
