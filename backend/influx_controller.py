@@ -77,4 +77,55 @@ class InfluxController:
 
         self.write_api.write(bucket=self.bucket, org=self.org, record=points)
 
+    # Write a data point per VM
+    def write_vms(self, vms: list[dict]):
+        points = []
+        now = datetime.now(timezone.utc)
 
+        for vm in vms:
+            vmid = vm.get("vmid", 0)
+            name = vm.get("name", f"vm-{vmid}")
+            status = vm.get("status", "unknown")
+            node = vm.get("node", "unknown")
+            cpu = vm.get("cpu", 0)
+            cpu_assigned = vm.get("cpus", 0)
+            disk = vm.get("disk", 0)
+            maxdisk = vm.get("maxdisk", 0)
+            mem = vm.get("mem", 0)
+            maxmem = vm.get("maxmem", 0)
+            uptime = vm.get("uptime", 0)
+            netin = vm.get("netin", 0)
+            netout = vm.get("netout", 0)
+
+            p = (
+                Point("vm_metrics")
+                .tag("vmid", str(vmid))
+                .tag("name", name)
+                .tag("node", node)
+                .tag("status", status)
+                .field("status_running", 1 if status == "running" else 0)
+                .field("cpu_usage", cpu)
+                .field("cpu_assigned", cpu_assigned)
+                .field("mem_used", mem)
+                .field("mem_total", maxmem)
+                .field("disk_used", disk)
+                .field("disk_total", maxdisk)
+                .field("uptime", uptime)
+                .field("netin", netin)
+                .field("netout", netout)
+                .time(now, WritePrecision.S)
+            )
+
+            points.append(p)
+
+        self.write_api.write(bucket=self.bucket, org=self.org, record=points)
+
+    # Single call to write both, used by collector loop
+    def write_all(self, nodes: list[dict], vms: list[dict]):
+        self.write_nodes(nodes)
+        self.write_vms(vms)
+
+    # --- Query Functions ---
+    #
+    def query_node_history(self, node_name: str, hours: int=24) -> list[dict]:
+        pass
