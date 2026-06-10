@@ -46,6 +46,20 @@ def fetch_nodes(client: ProxmoxClient) -> list[dict]:
                 entry["storages"] = client.get(f"/nodes/{node['node']}/storage")["data"]
             except RuntimeError:
                 pass
+
+            # Get throughput of network and disks
+            try:
+                status = client.get(f"/nodes/{node['node']}/status")["data"]
+                entry["netin"] = status.get("netin", 0)
+                entry["netout"] = status.get("netout", 0)
+                entry["diskread"] = status.get("diskread", 0)
+                entry["diskwrite"] = status.get("diskwrite", 0)
+            except RuntimeError:
+                entry["netin"] = 0
+                entry["netout"] = 0
+                entry["diskread"] = 0
+                entry["diskwrite"] = 0
+
         nodes.append(entry)
 
     return nodes
