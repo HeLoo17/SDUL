@@ -15,8 +15,10 @@ def fetch_nodes(client: ProxmoxClient) -> list[dict]:
     for node in raw_nodes:
         entry = dict(node)
         entry["ip_address"] = None
+        entry["storages"] = []
 
         if node.get("status") == "online":
+            # Get IP Address
             try:
                 interfaces = client.get(f"/nodes/{node['node']}/network")["data"]
                 # Primarily grab standard Proxmox management bridge - vmbr0
@@ -39,6 +41,11 @@ def fetch_nodes(client: ProxmoxClient) -> list[dict]:
             except RuntimeError:
                 pass
 
+            # Get storages
+            try:
+                entry["storages"] = client.get(f"/nodes/{node['node']}/storage")["data"]
+            except RuntimeError:
+                pass
         nodes.append(entry)
 
     return nodes
