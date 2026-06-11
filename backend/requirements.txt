@@ -2,5 +2,6 @@ requests
 python-dotenv
 flask
 flask-cors
+flask_socketio
 urllib3
 influxdb-client

@@ -126,6 +126,62 @@ class InfluxController:
         self.write_vms(vms)
 
     # --- Query Functions ---
-    #
+    # Raw metrics of a single node over N hours
+    # Return: time, cpu_used, maxcpu, mem_used, mem_total, disk_usage, disk_total,
+    #         uptime, netin, netout, diskread, diskwrite, status_online
     def query_node_history(self, node_name: str, hours: int=24) -> list[dict]:
-        pass
+        query = f'''
+         from(bucket: "{self.bucket}")
+           |> range(start: -{hours}h)
+           |> filter(fn: (r) => r._measurement == "node_metrics")
+           |> filter(fn: (r) => r.node == "{node_name}")
+           |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")
+           |> sort(columns: ["_time"], desc: false)
+        '''
+        return self._run_query(query)
+    
+    # Raw metrics of a single VM over N hours
+    # Return: time, cpu_used, maxcpu, mem_used, mem_total, disk_usage, disk_total,
+    #         uptime, netin, netout, status_online
+    def query_vm_history(self, vmid: int, hours: int = 24) -> list[dict]:
+        query = f'''
+        from(bucket: "{self.bucket}")
+            |> range(start: -{hours}h)
+            |> filter(fn: (r) => r._measurement == "vm_metrics")
+            |> filter(fn: (r) => r.vmid == "{vmid}")
+            |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")
+            |> sort(columns: ["_time"], desc: false)
+        '''
+        return self._run_query(query)
+    
+    # Raw metrics of all nodes over N hours
+    # Return all data of all nodes on the same timestamp
+    def query_cluster_history(self, hours: int = 24) -> list[dict]:
+        query = f'''
+        from(bucket: "{self.bucket}")
+            |> range(start: -{hours}h)
+            |> filter(fn: (r) => r._measurement == "node_metrics")
+            |> pivot(rowKey: ["_time", "node"], columnKey: ["_field"], valueColumn: "_value")
+            |> sort(columns: ["_time"], desc: false)
+        '''
+        return self._run_query(query)
+
+    # Execute Flex query and return results as list of dicts
+    def _run_query(self, query: str) -> list[dict]:
+        result = self.query_api.query(org=self.org, query=query)
+        records = []
+        for table in result:
+            for record in table.records:
+                row = dict(record.values)
+                # Remove InfluxDB internal fields
+                for key in ("result", "table", "_start", "_stop", "_measurement"):
+                    row.pop(key, None)
+                
+                # Rename _time to time and ISO format
+                if "_time" in row:
+                    row["time"] = row.pop("_time").isoformat()
+                records.append(row)
+        return records
+    
+    def close(self):
+        self.client.close()
