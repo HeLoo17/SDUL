@@ -168,12 +168,64 @@ def on_disconnect():
 
 
 # --- Collector Loops and Threads ---
-# Collector that loops every POLL_INTERVAL seconds to query from ProxmoxVE API
+def _node_states(nodes: list[dict]) -> dict:
+    return {n.get("node"): n.get("status") for n in nodes}
+
+
+def _vm_states(vms: list[dict]) -> dict:
+    return {v.get("vmid"): v.get("status") for v in vms}
+
+
+# Collector that loops every POLL_INTERVAL, (Push live data over WebSocket (Tier 1), cache for Tier 2 to read, save cache into InfluxDB as history (Tier 3)
 def collector_loop():
+    prev_node_states: dict = {}
+    prev_vm_states: dict = {}
+
     while True:
         try:
             data = fetch_all(client)
-            cache.update(data["nodes"], data["vms"])
+            nodes = data["nodes"]
+            vms = data["vms"]
+
+            # Detect node state change (Primary)
+            curr_node_states = _node_states(nodes)
+            for node_name, curr_status in curr_node_states.items():
+                prev_status = prev_node_states.get(node_name)
+                if prev_status is not None and prev_status != curr_status:
+                    socketio.emit("node_status_change", {
+                        "node": node_name,
+                        "prev_status": prev_status,
+                        "curr_status": curr_status,
+                        "timestamp": datetime.now(timezone.utc).isoformat()
+                    })
+                    print(f"[event] node: {node_name} {prev_status}→{curr_status}")
+
+            # Detect vm state change (Primary)
+            curr_vm_states = _vm_states(vms)
+            for vmid, curr_status in curr_vm_states.items():
+                prev_status = prev_vm_states.get(vmid)
+                if prev_status is not None and prev_status != curr_status:
+                    socketio.emit("node_status_change", {
+                        "node": vmid,
+                        "prev_status": prev_status,
+                        "curr_status": curr_status,
+                        "timestamp": datetime.now(timezone.utc).isoformat()
+                    })
+                    print(f"[event] node: {vmid} {prev_status}→{curr_status}")
+
+            prev_node_states = curr_node_states
+            prev_vm_states = curr_vm_states
+
+            # Push metrics over WebSocket
+            socketio.emit("metrics", {
+                "nodes":     nodes,
+                "vms":       vms,
+                "summary":   build_summary(nodes, vms),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            })
+
+            # Cache update 
+            cache.update(nodes, vms)
             print(f"[collector] OK - {len(data['nodes'])} nodes, {len(data['vms'])} VMs")
             
             # Write to InfluxDB
@@ -186,6 +238,10 @@ def collector_loop():
         except RuntimeError as exc:
             cache.set_error(str(exc))
             print(f"[collector] ERROR - {exc}")
+            socketio.emit("websocket_collector_error", {
+                "message": str(exc),
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            })
 
         time.sleep(POLL_INTERVAL)
 
@@ -195,7 +251,7 @@ _thread = threading.Thread(target=collector_loop, daemon=True)
 _thread.start()
 
 
-# ----- API SECTION -----
+# ----- REST API SECTION -----
 # Wraps status and responses together
 def api_response(data, status_code=200):
     return jsonify({"ok": True, "data": data}), status_code
