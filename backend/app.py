@@ -366,7 +366,7 @@ if __name__ == "__main__":
     print(f"\n{'-'*30}")
     print(f"    Proxmox Dashboard API")
     print(f"    Listening: https://127.0.0.1:{FLASK_PORT}")
-    print(f"    Auth: X-API-Key required")
+    print(f"    Auth: X-API-Key required / auth.key (WebSocket)")
     print(f"\n{'-'*30}")
 
     app.run(host="127.0.0.1", port=FLASK_PORT,debug=False)
