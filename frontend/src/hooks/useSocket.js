@@ -86,7 +86,7 @@ export function useSocket() {
 
 
     // Setters - used by all tiers to update the same state fields
-    const applyMetrics = useCallbacks((nodes, vms, summary, source, timestamp) => {
+    const applyMetrics = useCallback((nodes, vms, summary, source, timestamp) => {
         setNodes(nodes ?? []);
         setVms(vms ?? []);
         setSummary(summary ?? null);
@@ -145,7 +145,7 @@ export function useSocket() {
             const [nodesData, vmsData, summaryData] = await Promise.all([
                 apiFetch("/api/nodes"),
                 apiFetch("/api/vms"),
-                apiFetch("/api/summary")``
+                apiFetch("/api/summary")
             ]);
 
             // Stop InfluxDB fallback (Tier 3) if REST API is working
@@ -172,7 +172,7 @@ export function useSocket() {
         // Check if already running
         if (restIntervalRef.current) return;
 
-        // Delay before starting, gives WebSocket(Tier 3) time to reconnect 
+        // Delay before starting, gives WebSocket(Tier 1) time to reconnect 
         setTimeout(() =>  {
             if(!wsConnectedRef.current) {
                 fetchRest();
