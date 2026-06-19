@@ -13,8 +13,8 @@ import { io } from "socket.io-client";
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const API_KEY = import.meta.env.VITE_API_KEY || "";
 const MAX_EVENTS = 100;
-const REST_INTERVAL = 5000;         //Tier 2: poll every 5 seconds
-const INFLUX_INTERVAL = 5000;       //Tier 3: poll every 5 seconds
+const REST_INTERVAL = 3000;         //Tier 2: poll every 5 seconds
+const INFLUX_INTERVAL = 3000;       //Tier 3: poll every 5 seconds
 const TIER_CHECK_DELAY = 3000;      //Tier 1 disconnect buffer time before switch to Tier 2
 
 
