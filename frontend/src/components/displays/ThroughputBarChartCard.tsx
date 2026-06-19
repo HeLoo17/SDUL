@@ -36,8 +36,12 @@ function CustomTooltip({ active, payload, label }: any) {
   );
 }
 
+interface Props {
+    rawNodes: RawNodeAPI[];
+}
 
-export default function ThroughputBarChartCard({ rawNodes }: RawNodeAPI[]) {
+
+export default function ThroughputBarChartCard({ rawNodes }: Props) {
     const [activeTab, setActiveTab] = useState<'Network' | 'Disk'>('Network');
     const [slices, setSlices] = useState<TimeSlice[]>([])
     const prevNodesRef = useRef<RawNodeAPI[]>([]);

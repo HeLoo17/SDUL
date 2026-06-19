@@ -5,7 +5,6 @@
 
 import type { Node } from "./node";
 import type { VM, vmStatus } from "./vm";
-import type { ThroughputDataPoint } from "./chart";
 
 
 // ----- NODES -----
