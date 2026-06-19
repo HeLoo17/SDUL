@@ -11,7 +11,7 @@ from urllib3.exceptions import InsecureRequestWarning
 
 class ProxmoxClient:
     def __init__(self, host: str, api_token: str, api_key: str, verify_ssl: bool = False):
-        self.base_url = host.rstrip("/") + "/api/json"
+        self.base_url = host.rstrip("/") + "/api2/json"
         self.session = requests.Session()
         self.session.headers.update({
             "Authorization": f"PVEAPIToken={api_token}={api_key}",
