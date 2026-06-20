@@ -25,8 +25,6 @@ export interface RawNodeAPI {
     ip_address?: string | null;
 }
 
-let _nodeIdCounter = 1;
-
 // Normalized for a node
 export function transformNode(raw: RawNodeAPI, index: number): Node {
     const cpuUsage = raw.maxcpu  && raw.cpu != null ? Math.round(raw.cpu * 100) : 0;

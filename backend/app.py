@@ -55,6 +55,7 @@ PVE_API_KEY = os.getenv("PVE_API_KEY", "")
 VERIFY_SSL = os.getenv("PVE_VERIFY_SSL", "false").lower() == "true"
 POLL_INTERVAL = int(os.getenv("POLL_INTERVAL", "5"))   # seconds between collections
 FLASK_PORT = int(os.getenv("FLASK_PORT", "5000"))
+FLASK_HOST = os.getenv("FLASK_HOST", "0.0.0.0")
 
 INFLUXDB_URL = os.getenv("INFLUXDB_URL", "http://localhost:8086")
 INFLUXDB_TOKEN = os.getenv("INFLUXDB_TOKEN", "")
@@ -365,8 +366,8 @@ def history_vm(vmid):
 if __name__ == "__main__":
     print(f"\n{'-'*30}")
     print(f"    Proxmox Dashboard API")
-    print(f"    Listening: https://127.0.0.1:{FLASK_PORT}")
+    print(f"    Listening: http://{FLASK_HOST}:{FLASK_PORT}")
     print(f"    Auth: X-API-Key required / auth.key (WebSocket)")
     print(f"\n{'-'*30}")
 
-    app.run(host="127.0.0.1", port=FLASK_PORT,debug=False)
+    socketio.run(app, host=FLASK_HOST, port=FLASK_PORT, debug=False, allow_unsafe_werkzeug=True)

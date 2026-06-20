@@ -1,12 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
-import { BarChart, Bar, ResponsiveContainer, Rectangle} from 'recharts';
+import { BarChart, Bar, ResponsiveContainer, Rectangle, Tooltip, XAxis} from 'recharts';
 import type { RawNodeAPI, TimeSlice } from '../../types';
 import { sumThroughput } from '../../types'
 
 const MAX_SLICES = 30;
-const POLL_MS = 5000; // match backend POLLINTERVAL
-
-
 
 function nowLabel(): string {
     return new Date().toLocaleTimeString('en-GB', {
@@ -100,7 +97,7 @@ export default function ThroughputBarChartCard({ rawNodes }: Props) {
                         <button onClick={() => setActiveTab('Disk')} className={`w-[80px] text-[12px] text-t1 font-inter font-bold px-3 py-2 rounded-md ${activeTab === 'Disk' ? 'bg-t2 text-t3' : 'hover:bg-t2/30 hover:text-t3'}`}>Disk</button>
                     </div>
                 </div>
-                <span className='text-[12px] text-[#00FFD9] font-inter font-semibold'>{changeRate} vs last hour</span>
+                <span className='text-[12px] text-[#00FFD9] font-inter font-semibold'>{changeLabel} vs last hour</span>
             </div>
 
             {/* CHART BODY */}
@@ -133,7 +130,7 @@ export default function ThroughputBarChartCard({ rawNodes }: Props) {
                     />
         
                     <Bar
-                        dataKey={currentKey}
+                        dataKey={currentData}
                         shape={(prop: any) => {
                         const ratio   = prop.value / maxValue;
                         const opacity = Math.max(0.15, ratio * 0.85);

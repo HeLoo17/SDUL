@@ -1,5 +1,5 @@
 /**
- * useSocket.js
+ * useSocket.ts
  * 3-Tier data source with automatics fallback
  * 
  * T1 - WebSocekt
@@ -8,7 +8,9 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { io } from "socket.io-client";
+import type { RawNodeAPI, RawVMAPI } from "../types";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const API_KEY = import.meta.env.VITE_API_KEY || "";
@@ -17,26 +19,81 @@ const REST_INTERVAL = 3000;         //Tier 2: poll every 5 seconds
 const INFLUX_INTERVAL = 3000;       //Tier 3: poll every 5 seconds
 const TIER_CHECK_DELAY = 3000;      //Tier 1 disconnect buffer time before switch to Tier 2
 
+type DataSource = "websocket" | "rest" | "influx_stale" | "unavailable";
+
+type SummaryData = unknown;
+
+interface ApiResponse<T> {
+    ok: boolean;
+    error?: string;
+    data: T;
+}
+
+interface HistoryRow {
+    time: string | number;
+    node: string;
+    status_online?: number;
+    cpu?: number;
+    maxcpu?: number;
+    mem?: number;
+    maxmem?: number;
+    disk?: number;
+    maxdisk?: number;
+    uptime?: number;
+    netin?: number;
+    netout?: number;
+    diskread?: number;
+    diskwrite?: number;
+}
+
+interface SocketMetricsPayload {
+    nodes?: RawNodeAPI[] | null;
+    vms?: RawVMAPI[] | null;
+    summary?: SummaryData;
+    timestamp?: string | null;
+}
+
+interface SocketEvent {
+    timestamp: string;
+    message?: string;
+    [key: string]: unknown;
+}
+
+interface UseSocketReturn {
+    nodes: RawNodeAPI[];
+    vms: RawVMAPI[];
+    summary: SummaryData;
+    dataSource: DataSource;
+    dataTimestamp: string | null;
+    nodeEvents: SocketEvent[];
+    vmEvents: SocketEvent[];
+    allEvents: SocketEvent[];
+    collectorError: string | null;
+}
 
 // Fetch helper 
-async function apiFetch(path) {
+async function apiFetch<T>(path: string): Promise<T> {
     const resp = await fetch(`${API_BASE}${path}`, {
-        headers: {"X-API_Key": API_KEY}
+        headers: {"X-API-Key": API_KEY}
     });
 
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const json = await resp.json();
+    const json = await resp.json() as ApiResponse<T>;
     if (!json.ok) throw new Error(json.error || "API error");
     return json.data;
 }
 
 
 // Tier 3 - InfluxDB helper
-function deriveSnapshotFromHistory(rows) {
+function deriveSnapshotFromHistory(rows: HistoryRow[] | null | undefined): {
+    nodes: RawNodeAPI[];
+    vms: RawVMAPI[];
+    summary: SummaryData;
+} {
     if (!rows || rows.length === 0) return { nodes: [], vms: [], summary: null };
  
     // Keep only the most recent row per node
-    const latestByNode = {};
+    const latestByNode: Record<string, HistoryRow> = {};
     rows.forEach(row => {
         const existing = latestByNode[row.node];
         if (!existing || row.time > existing.time) {
@@ -44,7 +101,7 @@ function deriveSnapshotFromHistory(rows) {
         }
     });
  
-    const nodes = Object.values(latestByNode).map(row => ({
+    const nodes: RawNodeAPI[] = Object.values(latestByNode).map(row => ({
         node:      row.node,
         status:    row.status_online === 1 ? "online" : "offline",
         cpu:       row.cpu       ?? 0,
@@ -65,28 +122,37 @@ function deriveSnapshotFromHistory(rows) {
 
 
 // Hook to trigger React re-render comonents using this hook with new value
-export function useSocket() {
-    const [nodes, setNodes] = useState([]);
-    const [vms, setVms] = useState([]);
-    const [summary, setSummary] = useState([]);
-    const [dataSource, setDataSource] = useState("unavailable");
-    const [dataTimestamp, setDataTimestamp] = useState(null);
-    const [collectorError, setCollectorError] = useState(null);
-    const [nodeEvents, setNodeEvents] = useState([])
-    const [vmEvents, setVmEvents] =  useState([])
+export function useSocket(): UseSocketReturn {
+    const [nodes, setNodes] = useState<RawNodeAPI[]>([]);
+    const [vms, setVms] = useState<RawVMAPI[]>([]);
+    const [summary, setSummary] = useState<SummaryData>([]);
+    const [dataSource, setDataSource] = useState<DataSource>("unavailable");
+    const [dataTimestamp, setDataTimestamp] = useState<string | null>(null);
+    const [collectorError, setCollectorError] = useState<string | null>(null);
+    const [nodeEvents, setNodeEvents] = useState<SocketEvent[]>([])
+    const [vmEvents, setVmEvents] =  useState<SocketEvent[]>([])
 
     const wsConnectedRef = useRef(false);
     const restWorkingRef = useRef(false);
-    const restIntervalRef = useRef(null);
-    const influxIntervalRef = useRef(null);
+    const restIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const influxIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    const addEvent = useCallback((setter, event) => {
+    const addEvent = useCallback((
+        setter: Dispatch<SetStateAction<SocketEvent[]>>,
+        event: SocketEvent,
+    ) => {
         setter(prev => [event, ...prev].slice(0, MAX_EVENTS));
     }, []);
 
 
     // Setters - used by all tiers to update the same state fields
-    const applyMetrics = useCallback((nodes, vms, summary, source, timestamp) => {
+    const applyMetrics = useCallback((
+        nodes: RawNodeAPI[] | null | undefined,
+        vms: RawVMAPI[] | null | undefined,
+        summary: SummaryData,
+        source: DataSource,
+        timestamp?: string | null,
+    ) => {
         setNodes(nodes ?? []);
         setVms(vms ?? []);
         setSummary(summary ?? null);
@@ -101,7 +167,7 @@ export function useSocket() {
         if (wsConnectedRef.current || restWorkingRef.current) return;
 
         try {
-            const rows = await apiFetch("/api/history/cluster?hours=1");
+            const rows = await apiFetch<HistoryRow[]>("/api/history/cluster?hours=1");
             const { nodes, vms, summary } = deriveSnapshotFromHistory(rows);
 
             if(nodes.length > 0) {
@@ -110,8 +176,8 @@ export function useSocket() {
             }
         }
         catch (err) {
-            setDataSource("unavailabel");
-            console.error("[tier3] InfluxDB fallback failed:", err.message);
+            setDataSource("unavailable");
+            console.error("[tier3] InfluxDB fallback failed:", err instanceof Error ? err.message : err);
         }
     }, [applyMetrics]);
 
@@ -143,9 +209,9 @@ export function useSocket() {
 
         try {
             const [nodesData, vmsData, summaryData] = await Promise.all([
-                apiFetch("/api/nodes"),
-                apiFetch("/api/vms"),
-                apiFetch("/api/summary")
+                apiFetch<RawNodeAPI[]>("/api/nodes"),
+                apiFetch<RawVMAPI[]>("/api/vms"),
+                apiFetch<SummaryData>("/api/summary")
             ]);
 
             // Stop InfluxDB fallback (Tier 3) if REST API is working
@@ -156,7 +222,7 @@ export function useSocket() {
         }
         catch (err) {
             restWorkingRef.current = false;
-            console.warn("[tier2] REST failed:", err.message);
+            console.warn("[tier2] REST failed:", err instanceof Error ? err.message : err);
 
             // Start InfluxDB stale data (Tier 3) if it wasn't running
             if (!influxIntervalRef.current) {
@@ -179,8 +245,8 @@ export function useSocket() {
                 restIntervalRef.current = setInterval(fetchRest, REST_INTERVAL);
                 console.log("[tier2] REST polling started");
             }
-        })
-    });
+        }, TIER_CHECK_DELAY)
+    }, [fetchRest]);
 
 
     // Tier 1 - Websocket (Priamry)
@@ -215,7 +281,7 @@ export function useSocket() {
         });
 
         // Main metrics push
-        socket.io("metrics", (data) => {
+        socket.on("metrics", (data: SocketMetricsPayload) => {
             applyMetrics(
                 data.nodes,
                 data.vms,
@@ -226,19 +292,19 @@ export function useSocket() {
         });
 
         // State change events
-        socket.on("node_status_change", (event) => {
+        socket.on("node_status_change", (event: SocketEvent) => {
             console.log("[ws] node_status_change:", event);
             addEvent(setNodeEvents, event);
         });
 
-        socket.on("vm_status_change", (event) => {
+        socket.on("vm_status_change", (event: SocketEvent) => {
             console.log("[ws] vm_status_change:", event);
             addEvent(setVmEvents, event);
         });
 
-        socket.on("collector_error", (event) => {
+        socket.on("collector_error", (event: SocketEvent) => {
             console.error("[ws] collector_error:", event.message);
-            setCollectorError(event.message);
+            setCollectorError(event.message ?? null);
         });
 
         // Clean up when unmounted
@@ -252,7 +318,7 @@ export function useSocket() {
 
     // Combine event logs into newest align
     const allEvents = [...nodeEvents, ...vmEvents]
-        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
         .slice(0, MAX_EVENTS);
 
     return {

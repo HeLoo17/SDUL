@@ -13,7 +13,7 @@ export default function Nodes() {
             <NodeStatusLayout nodes={nodes} />
 
             <div className="w-full">
-                <ThroughputBarChartCard rawNodes={nodes} />
+                <ThroughputBarChartCard rawNodes={rawNodes} />
             </div>
         </div> 
     )
