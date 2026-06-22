@@ -12,7 +12,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { io } from "socket.io-client";
 import type { RawNodeAPI, RawVMAPI } from "../types";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_BASE = import.meta.env.VITE_API_URL ?? "";
 const API_KEY = import.meta.env.VITE_API_KEY || "";
 const MAX_EVENTS = 100;
 const REST_INTERVAL = 3000;         //Tier 2: poll every 5 seconds
