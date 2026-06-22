@@ -1,5 +1,6 @@
 # Environment and secrets
 .env
+backend/.env
 
 # Dependency directories
 node_modules/
