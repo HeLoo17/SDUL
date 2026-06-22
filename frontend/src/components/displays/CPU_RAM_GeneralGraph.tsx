@@ -104,6 +104,7 @@ export default function CPU_RAM_GeneralGraph({ cpuUsage, memoryUsage, timestamp 
                             tick={{ fill: "#8B90A1", fontSize: 10 }}
                             axisLine={false}
                             tickLine={false}
+                            interval={data.length > 6 ? Math.floor(data.length / 6) : 0}
                         />
 
                         <YAxis
