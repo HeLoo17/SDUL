@@ -58,7 +58,7 @@ interface SocketEvent {
     [key: string]: unknown;
 }
 
-interface UseSocketReturn {
+export interface UseSocketReturn {
     nodes: RawNodeAPI[];
     vms: RawVMAPI[];
     summary: SummaryData;

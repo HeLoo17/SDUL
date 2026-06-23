@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
+import { useSocket, type UseSocketReturn } from "../hooks/useSocket";
 
 export default function DashboardLayout () {
     const location = useLocation();
@@ -16,6 +17,7 @@ export default function DashboardLayout () {
     };
 
     const currentTitle = titles[location.pathname] || "Dashboard";
+    const rawData: UseSocketReturn = useSocket();
 
     return (
         <div className="h-screen w-full flex overflow-hidden">
@@ -27,7 +29,7 @@ export default function DashboardLayout () {
                 </div>
 
                 <main className="h-full w-full p-4 bg-primary flex flex-col overflow-y-auto scrollbar-track-transparent scrollbar-thin scrollbar-thumb-[#262A34]">
-                    <Outlet />
+                    <Outlet context={{rawData}}/>
                 </main>
                 <div className="h-4 bg-primary" />
             </div>

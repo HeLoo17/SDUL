@@ -3,8 +3,9 @@ import KPICards2 from "../displays/KPICards2";
 import deco from "../../assets/deco";
 import CPU_RAM_GeneralGraph from "../displays/CPU_RAM_GeneralGraph";
 import BriefAlertLog from "../displays/briefAlertLog/BriefAlertLog";
-import { useSocket } from "../../hooks/useSocket";
+import { type UseSocketReturn } from "../../hooks/useSocket";
 import type { RawNodeAPI, RawVMAPI } from "../../types";
+import { useOutletContext } from "react-router-dom";
 
 // Shape returned by backend build_summary(). Fields are optional because the hook can briefly return null/empty data while WebSocket or REST reconnects.
 interface DashboardSummary {
@@ -61,8 +62,8 @@ function runningVmCount(vms: RawVMAPI[]): number {
 }
 
 export default function Dashboard() {
-    // One hook call keeps the page on a single live data stream; child components receive derived props instead of opening their own sockets.
-    const { nodes, vms, summary, dataTimestamp } = useSocket();
+    const { rawData } = useOutletContext<{rawData: UseSocketReturn}>();
+    const { nodes, vms, summary, dataTimestamp } = rawData;
     const liveSummary = isDashboardSummary(summary) ? summary : null;
 
     // Prefer backend summary values when available, then fall back to raw WebSocket/REST data so the dashboard still renders during degraded tiers.
