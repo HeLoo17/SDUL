@@ -21,7 +21,7 @@ function formatBytes(bytes: number): string {
 }
 
 function changeDataDisplay(currentData: string, data: number): string {
-    return currentData == 'network' ? formatBytes(data) : (data * 100).toString();
+    return currentData == 'network' ? formatBytes(data) : `${(data * 100).toString()}%`;
 }
 
 // Custom Tooltip
@@ -101,7 +101,7 @@ export default function ThroughputBarChartCard({ rawNodes }: Props) {
                         <button onClick={() => setActiveTab('Disk')} className={`w-[80px] text-[12px] text-t1 font-inter font-bold px-3 py-2 rounded-md ${activeTab === 'Disk' ? 'bg-t2 text-t3' : 'hover:bg-t2/30 hover:text-t3'}`}>Disk</button>
                     </div>
                 </div>
-                <span className='text-[12px] text-[#00FFD9] font-inter font-semibold'>{changeLabel} vs last hour</span>
+                <span className='text-[12px] text-[#00FFD9] font-inter font-semibold'>{changeLabel}</span>
             </div>
 
             {/* CHART BODY */}
@@ -134,6 +134,7 @@ export default function ThroughputBarChartCard({ rawNodes }: Props) {
                     />
         
                     <Bar
+                        key={currentData}
                         dataKey={currentData}
                         shape={(prop: any) => {
                         const ratio   = prop.value / maxValue;
