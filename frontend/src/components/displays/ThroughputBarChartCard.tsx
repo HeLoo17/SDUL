@@ -21,7 +21,7 @@ function formatBytes(bytes: number): string {
 }
 
 function changeDataDisplay(currentData: string, data: number): string {
-    return currentData == 'network' ? formatBytes(data) : `${(data * 100).toFixed(2)}%`;
+    return currentData == 'network' ? formatBytes(data) : `${(data).toFixed(2)}%`;
 }
 
 // CustomTooltip to handle both units
@@ -76,7 +76,7 @@ export default function ThroughputBarChartCard({ rawNodes }: Props) {
     // MaxValue floor — use a small floor for disk so bars are visible
     const maxValue = currentData === 'network'
         ? Math.max(...slices.map((s: any) => s[currentData]), 1)
-        : Math.max(...slices.map((s: any) => s[currentData]), 0.001);
+        : Math.max(...slices.map((s: any) => s[currentData]), 0.0001);
 
     // Show every N-th label on chart axis
     const labelStep = Math.max(1, Math.floor(slices.length / 6));
