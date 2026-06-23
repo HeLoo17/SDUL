@@ -1,5 +1,18 @@
-export default function KPICards({ total, on, title, info, icon:IconComponent }: { total: number, on: number, title: string, info: string, icon: React.ComponentType<{ className?: string }> }) {
-    const progressPercentage = total > 0 ? (on / total) * 100 : 0;
+import type { ComponentType } from "react";
+
+interface KPICards2Props {
+    total: number;
+    on: number;
+    title: string;
+    info: string;
+    icon: ComponentType<{ className?: string }>;
+}
+
+export default function KPICards2({ total, on, title, info, icon:IconComponent }: KPICards2Props) {
+    // Percentage cards receive live utilization values. Clamp them to keep stable if the API sends an out-of-range or initial empty value.
+    const safeTotal = Math.max(0, total);
+    const safeOn = Math.max(0, on);
+    const progressPercentage = safeTotal > 0 ? Math.min((safeOn / safeTotal) * 100, 100) : 0;
     
     return (
         <div className="relative w-full h-fit flex p-6 gap-2 bg-primary-BACK rounded-lg">

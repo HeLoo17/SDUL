@@ -1,6 +1,20 @@
 import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
+import { useSocket, type UseSocketReturn } from "../hooks/useSocket";
+import { useChartData } from "../hooks/useChartData";
+
+const EMPTY_SOCKET_DATA: UseSocketReturn = {
+    nodes: [],
+    vms: [],
+    summary: {},
+    dataSource: 'unavailable',
+    dataTimestamp: null,
+    nodeEvents: [],
+    vmEvents: [],
+    allEvents: [],
+    collectorError: null,
+};
 
 export default function DashboardLayout () {
     const location = useLocation();
@@ -16,6 +30,9 @@ export default function DashboardLayout () {
     };
 
     const currentTitle = titles[location.pathname] || "Dashboard";
+    const rawData = useSocket() ?? EMPTY_SOCKET_DATA;
+
+    const { slices, resourceHistory } = useChartData(rawData) ?? {};
 
     return (
         <div className="h-screen w-full flex overflow-hidden">
@@ -27,7 +44,7 @@ export default function DashboardLayout () {
                 </div>
 
                 <main className="h-full w-full p-4 bg-primary flex flex-col overflow-y-auto scrollbar-track-transparent scrollbar-thin scrollbar-thumb-[#262A34]">
-                    <Outlet />
+                    <Outlet context={{rawData, slices, resourceHistory}}/>
                 </main>
                 <div className="h-4 bg-primary" />
             </div>
