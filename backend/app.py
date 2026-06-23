@@ -360,7 +360,15 @@ def history_vm(vmid):
         return api_error(f"History data query failed: {exc}")
     
 
-# Retrieve 
+# Retrieve historical data of cluster
+@app.route("/api/history/cluster")
+@require_api_key
+def history_cluster():
+    hours = request.args.get("hours", 24, type=int)
+    try:
+        return api_response(influx.query_cluster_history(hours=hours))
+    except Exception as exc:
+        return api_error(f"InfluxDB query failed: {exc}")
 
 
 if __name__ == "__main__":
