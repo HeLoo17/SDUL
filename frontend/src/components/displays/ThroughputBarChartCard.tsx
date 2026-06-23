@@ -21,20 +21,24 @@ function formatBytes(bytes: number): string {
 }
 
 function changeDataDisplay(currentData: string, data: number): string {
-    return currentData == 'network' ? formatBytes(data) : `${(data * 100).toString()}%`;
+    return currentData == 'network' ? formatBytes(data) : `${(data * 100).toFixed(2)}%`;
 }
 
-// Custom Tooltip
+// CustomTooltip to handle both units
 function CustomTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-primary border border-t2/30 rounded-md px-3 py-2 text-[11px] font-inter shadow-xl">
-      <p className="text-t1 mb-1">{label}</p>
-      <p style={{ color: payload[0]?.fill ?? '#7F9CF5' }}>
-        {formatBytes(payload[0]?.value ?? 0)}
-      </p>
-    </div>
-  );
+    if (!active || !payload?.length) return null;
+    
+    const value = payload[0]?.value ?? 0;
+    const isNetwork = payload[0]?.dataKey === 'network';
+    
+    return (
+        <div className="bg-primary border border-t2/30 rounded-md px-3 py-2 text-[11px] font-inter shadow-xl">
+            <p className="text-t1 mb-1">{label}</p>
+            <p style={{ color: payload[0]?.fill ?? '#7F9CF5' }}>
+                {isNetwork ? formatBytes(value) : `${value.toFixed(2)}% iowait`}
+            </p>
+        </div>
+    );
 }
 
 interface Props {
@@ -69,7 +73,10 @@ export default function ThroughputBarChartCard({ rawNodes }: Props) {
     const currentData = activeTab == 'Network' ? 'network' : 'disk';
     const latest = slices[slices.length - 1]?.[currentData] ?? 0;
 
-    const maxValue = Math.max(...slices.map((s: any) => s[currentData]), 1);
+    // MaxValue floor — use a small floor for disk so bars are visible
+    const maxValue = currentData === 'network'
+        ? Math.max(...slices.map((s: any) => s[currentData]), 1)
+        : Math.max(...slices.map((s: any) => s[currentData]), 0.01);
 
     // Show every N-th label on chart axis
     const labelStep = Math.max(1, Math.floor(slices.length / 6));
