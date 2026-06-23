@@ -45,15 +45,31 @@ def _enrich_storages(client: ProxmoxClient, entry: dict, node_name: str):
 
 def _enrich_throughput(client: ProxmoxClient, entry: dict, node_name: str):
     try:
-        status = client.get(f"/nodes/{node_name}/status")["data"]
-        entry["netin"] = status.get("netin",     0)
-        entry["netout"] = status.get("netout",    0)
-        entry["diskread"] = status.get("diskread",  0)
-        entry["diskwrite"] = status.get("diskwrite", 0)
+        # Use rrddata for actual live throughput rates
+        rrd = client.get(f"/nodes/{node_name}/rrddata?timeframe=hour&cf=AVERAGE")["data"]
+        
+        # Get the most recent non-null data point
+        latest = None
+        for point in reversed(rrd):
+            if point.get("netin") is not None:
+                latest = point
+                break
+
+        if latest:
+            entry["netin"]     = latest.get("netin",     0)
+            entry["netout"]    = latest.get("netout",    0)
+            entry["diskread"]  = latest.get("diskread",  0)
+            entry["diskwrite"] = latest.get("diskwrite", 0)
+        else:
+            entry["netin"]     = 0
+            entry["netout"]    = 0
+            entry["diskread"]  = 0
+            entry["diskwrite"] = 0
+
     except RuntimeError:
-        entry["netin"] = 0
-        entry["netout"] = 0
-        entry["diskread"] = 0
+        entry["netin"]     = 0
+        entry["netout"]    = 0
+        entry["diskread"]  = 0
         entry["diskwrite"] = 0
 
 
