@@ -76,7 +76,7 @@ export default function ThroughputBarChartCard({ rawNodes }: Props) {
     // MaxValue floor — use a small floor for disk so bars are visible
     const maxValue = currentData === 'network'
         ? Math.max(...slices.map((s: any) => s[currentData]), 1)
-        : Math.max(...slices.map((s: any) => s[currentData]), 0.01);
+        : Math.max(...slices.map((s: any) => s[currentData]), 0.001);
 
     // Show every N-th label on chart axis
     const labelStep = Math.max(1, Math.floor(slices.length / 6));
@@ -86,11 +86,17 @@ export default function ThroughputBarChartCard({ rawNodes }: Props) {
     let changeLabel = '-';
     if (slices.length >= 2) {
         const prev = slices[slices.length - 2][currentData];
-        const diff = latest-prev;
+        const diff = latest - prev;
         const sign = diff >= 0 ? '+' : '';
-        changeLabel = prev > 0 
-        ? `${sign}${((diff / prev) * 100).toFixed(1)}% vs prev`
-        : `${sign}${formatBytes(Math.abs(diff))}`;
+        
+        if (currentData === 'network') {
+            changeLabel = prev > 0
+                ? `${sign}${((diff / prev) * 100).toFixed(1)}% vs prev`
+                : `${sign}${formatBytes(Math.abs(diff))}`;
+        } else {
+            // disk iowait — show absolute change in % points
+            changeLabel = `${sign}${diff.toFixed(2)}pp vs prev`;
+        }
     }
 
     return (
