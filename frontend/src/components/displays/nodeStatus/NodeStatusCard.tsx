@@ -17,7 +17,7 @@ export default function NodeStatusCard({ nodeName, status, cpuUsage, memoryUsage
             </div>
             {/* INFO */}
             <div className="flex flex-col items-center justify-center">
-                <span className="text-[18px] font-inter font-bold text-graph-TITLE">{trimmedNodeName}</span>
+                <span className="text-[18px] font-inter font-bold text-graph-TITLE text-center">{trimmedNodeName}</span>
                 <span className="text-[10px] font-inter font-semiBold text-t1">{ipAddressDisplay}</span>
             </div>
         </div>
