@@ -1,7 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { BarChart, Bar, ResponsiveContainer, Rectangle, Tooltip, XAxis} from 'recharts';
-import type { RawNodeAPI, TimeSlice } from '../../types';
-import { sumThroughput } from '../../types'
+import type { TimeSlice } from '../../types';
 
 function formatBytes(bytes: number): string {
   if (bytes >= 1e9) return `${(bytes / 1e9).toFixed(1)} GB/s`;
@@ -38,7 +37,6 @@ interface Props {
 
 export default function ThroughputBarChartCard({ slices }: Props) {
     const [activeTab, setActiveTab] = useState<'Network' | 'Disk'>('Network');
-    const prevNodesRef = useRef<RawNodeAPI[]>([]);
 
     const currentData = activeTab == 'Network' ? 'network' : 'disk';
     const latest = slices[slices.length - 1]?.[currentData] ?? 0;

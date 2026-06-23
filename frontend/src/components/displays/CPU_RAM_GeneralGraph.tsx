@@ -41,7 +41,7 @@ const CustomLegend = () => (
     </div>
 );
 
-export default function CPU_RAM_GeneralGraph({historyData, cpuUsage, memoryUsage, timestamp }: CPU_RAM_GeneralGraphProps) {
+export default function CPU_RAM_GeneralGraph({historyData }: CPU_RAM_GeneralGraphProps) {
     return (
         <div className='w-full flex flex-col bg-primary-BACK rounded-lg p-8 gap-8'>
             {/* HEADER */}
