@@ -20,8 +20,7 @@ export interface RawNodeAPI {
     maxdisk?: number;
     netin?:    number;
     netout?:   number;
-    diskread?:  number;
-    diskwrite?: number;
+    iowait?: number;
     ip_address?: string | null;
 }
 
@@ -101,7 +100,7 @@ export function sumThroughput(nodes: RawNodeAPI[], key: 'net' | 'disk'): number 
     .filter((n) => n.status === 'online')
     .reduce((acc, n) => {
       if (key === 'net')  return acc + (n.netin  ?? 0) + (n.netout  ?? 0);
-      if (key === 'disk') return acc + (n.diskread ?? 0) + (n.diskwrite ?? 0);
+      if (key === 'disk') return acc + (n.iowait ?? 0);
       return acc;
     }, 0);
 }

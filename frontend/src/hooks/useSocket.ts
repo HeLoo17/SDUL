@@ -42,8 +42,7 @@ interface HistoryRow {
     uptime?: number;
     netin?: number;
     netout?: number;
-    diskread?: number;
-    diskwrite?: number;
+    iowait?: number;
 }
 
 interface SocketMetricsPayload {
@@ -102,19 +101,18 @@ function deriveSnapshotFromHistory(rows: HistoryRow[] | null | undefined): {
     });
  
     const nodes: RawNodeAPI[] = Object.values(latestByNode).map(row => ({
-        node:      row.node,
-        status:    row.status_online === 1 ? "online" : "offline",
-        cpu:       row.cpu       ?? 0,
-        maxcpu:    row.maxcpu    ?? 0,
-        mem:       row.mem       ?? 0,
-        maxmem:    row.maxmem    ?? 0,
-        disk:      row.disk      ?? 0,
-        maxdisk:   row.maxdisk   ?? 0,
-        uptime:    row.uptime    ?? 0,
-        netin:     row.netin     ?? 0,
-        netout:    row.netout    ?? 0,
-        diskread:  row.diskread  ?? 0,
-        diskwrite: row.diskwrite ?? 0,
+        node: row.node,
+        status: row.status_online === 1 ? "online" : "offline",
+        cpu: row.cpu ?? 0,
+        maxcpu: row.maxcpu ?? 0,
+        mem: row.mem ?? 0,
+        maxmem: row.maxmem ?? 0,
+        disk: row.disk ?? 0,
+        maxdisk: row.maxdisk ?? 0,
+        uptime: row.uptime ?? 0,
+        netin: row.netin ?? 0,
+        netout: row.netout ?? 0,
+        iowait: row.iowait ?? 0,
     }));
  
     return { nodes, vms: [], summary: null };

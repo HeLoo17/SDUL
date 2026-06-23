@@ -20,6 +20,10 @@ function formatBytes(bytes: number): string {
   return `${bytes.toFixed(0)} B/s`;
 }
 
+function changeDataDisplay(currentData: string, data: number): string {
+    return currentData == 'network' ? formatBytes(data) : (data * 100).toString();
+}
+
 // Custom Tooltip
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
@@ -89,7 +93,7 @@ export default function ThroughputBarChartCard({ rawNodes }: Props) {
             <div className='w-full flex justify-between items-start'>
                 <div className='flex flex-col gap-1'>
                     <h2 className='text-[11px] text-graph-TITLE font-inter font-semibold uppercase'>aggregate throughput</h2>
-                    <span className='text-[24px] text-t1 font-space fond-bold'>{formatBytes(latest)}</span>
+                    <span className='text-[24px] text-t1 font-space fond-bold'>{changeDataDisplay(currentData, latest)}</span>
                     
                     {/* SOURCE SELECTION BUTTON */}
                     <div className="flex justify-between bg-primary-BACK rounded-lg gap-1">
