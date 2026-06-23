@@ -62,8 +62,26 @@ function runningVmCount(vms: RawVMAPI[]): number {
 }
 
 export default function Dashboard() {
-    const { rawData } = useOutletContext<{rawData: UseSocketReturn}>();
+    const context = useOutletContext<{
+        rawData: UseSocketReturn;
+        resourceHistory: any[];
+    }>();
+
+    const rawData = context?.rawData;
+    const resourceHistory = context?.resourceHistory ?? [];
+
+    // Prevent crash during initial mount or route transitions
+    if (!rawData) {
+        return (
+            <div className="h-full w-full flex items-center justify-center">
+                <span className="text-t2">Loading dashboard...</span>
+            </div>
+        );
+    }
+
     const { nodes, vms, summary, dataTimestamp } = rawData;
+
+
     const liveSummary = isDashboardSummary(summary) ? summary : null;
 
     // Prefer backend summary values when available, then fall back to raw WebSocket/REST data so the dashboard still renders during degraded tiers.
@@ -82,7 +100,7 @@ export default function Dashboard() {
                 <KPICards2 on={cpuUsage} total={100} title="CPU Usage" info="System Load" icon={deco.cpuUsage} />
                 <KPICards2 on={memoryUsed} total={100} title="Memory Usage" info="Usage" icon={deco.memoryUsage} />
             </div>
-            <CPU_RAM_GeneralGraph cpuUsage={cpuUsage} memoryUsage={memoryUsed} timestamp={dataTimestamp} />
+            <CPU_RAM_GeneralGraph historyData={resourceHistory} cpuUsage={cpuUsage} memoryUsage={memoryUsed} timestamp={dataTimestamp} />
             <BriefAlertLog />
         </div>
     )

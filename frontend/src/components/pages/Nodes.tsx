@@ -1,11 +1,11 @@
 import NodeStatusLayout from "../displays/nodeStatus/NodeStatusLayout";
 import ThroughputBarChartCard from "../displays/ThroughputBarChartCard";
 import { type UseSocketReturn } from "../../hooks/useSocket";
-import { transformNodes} from "../../types";
+import { transformNodes, type TimeSlice} from "../../types";
 import { useOutletContext } from "react-router-dom";
 
 export default function Nodes() {
-    const { rawData } = useOutletContext<{rawData: UseSocketReturn}>();
+    const { rawData, slices } = useOutletContext<{rawData: UseSocketReturn, slices: TimeSlice[]}>();
     const { nodes: rawNodes } = rawData;
 
     const nodes = transformNodes(rawNodes);
@@ -15,7 +15,7 @@ export default function Nodes() {
             <NodeStatusLayout nodes={nodes} />
 
             <div className="w-full">
-                <ThroughputBarChartCard rawNodes={rawNodes} />
+                <ThroughputBarChartCard slices={slices} />
             </div>
         </div> 
     )

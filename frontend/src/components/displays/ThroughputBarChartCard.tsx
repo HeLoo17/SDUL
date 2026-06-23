@@ -3,16 +3,6 @@ import { BarChart, Bar, ResponsiveContainer, Rectangle, Tooltip, XAxis} from 're
 import type { RawNodeAPI, TimeSlice } from '../../types';
 import { sumThroughput } from '../../types'
 
-const MAX_SLICES = 30;
-
-function nowLabel(): string {
-    return new Date().toLocaleTimeString('en-GB', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-    });
-}
-
 function formatBytes(bytes: number): string {
   if (bytes >= 1e9) return `${(bytes / 1e9).toFixed(1)} GB/s`;
   if (bytes >= 1e6) return `${(bytes / 1e6).toFixed(1)} MB/s`;
@@ -42,34 +32,14 @@ function CustomTooltip({ active, payload, label }: any) {
 }
 
 interface Props {
-    rawNodes: RawNodeAPI[];
+    slices: TimeSlice[];
 }
 
 
-export default function ThroughputBarChartCard({ rawNodes }: Props) {
+export default function ThroughputBarChartCard({ slices }: Props) {
     const [activeTab, setActiveTab] = useState<'Network' | 'Disk'>('Network');
-    const [slices, setSlices] = useState<TimeSlice[]>([])
     const prevNodesRef = useRef<RawNodeAPI[]>([]);
 
-    // Add new slice when rawNodes changes
-    useEffect(() => {
-        // Skip first render
-        if (prevNodesRef.current.length === 0) {
-            prevNodesRef.current = rawNodes;
-            return;
-        }
-
-        const network = sumThroughput(rawNodes, 'net');
-        const disk    = sumThroughput(rawNodes, 'disk');
-
-        setSlices((prev: any) => {
-        const next = [...prev, { time: nowLabel(), network, disk }];
-        return next.length > MAX_SLICES ? next.slice(-MAX_SLICES) : next;
-        });
-
-        prevNodesRef.current = rawNodes;
-    }, [rawNodes]);
-    
     const currentData = activeTab == 'Network' ? 'network' : 'disk';
     const latest = slices[slices.length - 1]?.[currentData] ?? 0;
 

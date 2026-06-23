@@ -1,33 +1,13 @@
-import { useEffect, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import type { TelemetryDataPoint } from '../../types';
-
-const MAX_POINTS = 30;
 
 // Values are derived by Dashboard from useSocket()
 interface CPU_RAM_GeneralGraphProps {
+    historyData: any[];
     cpuUsage: number;
     memoryUsage: number;
     timestamp: string | null;
 }
 
-// Recharts expects bounded percentages. Rounding keeps the tooltip and axis values readable
-function clampPercentage(value: number): number {
-    return Math.min(100, Math.max(0, Math.round(value)));
-}
-
-// Use the backend/socket timestamp when available so chart points line up with
-// data collection time, then fall back to the browser clock during first load.
-function formatTime(timestamp: string | null): string {
-    const date = timestamp ? new Date(timestamp) : new Date();
-    const validDate = Number.isNaN(date.getTime()) ? new Date() : date;
-
-    return validDate.toLocaleTimeString('en-GB', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-    });
-}
 
 const CustomLegend = () => (
     <div className="flex gap-4 items-center">
@@ -61,22 +41,7 @@ const CustomLegend = () => (
     </div>
 );
 
-export default function CPU_RAM_GeneralGraph({ cpuUsage, memoryUsage, timestamp }: CPU_RAM_GeneralGraphProps) {
-    const [data, setData] = useState<TelemetryDataPoint[]>([]);
-
-    useEffect(() => {
-        setData((prev) => {
-            // Store a compact rolling history for the session. The hook provides the latest snapshot; this component turns those snapshots into a chart.
-            const nextPoint = {
-                time: formatTime(timestamp),
-                cpu: clampPercentage(cpuUsage),
-                memory: clampPercentage(memoryUsage),
-            };
-
-            return [...prev, nextPoint].slice(-MAX_POINTS);
-        });
-    }, [cpuUsage, memoryUsage, timestamp]);
-
+export default function CPU_RAM_GeneralGraph({historyData, cpuUsage, memoryUsage, timestamp }: CPU_RAM_GeneralGraphProps) {
     return (
         <div className='w-full flex flex-col bg-primary-BACK rounded-lg p-8 gap-8'>
             {/* HEADER */}
@@ -88,7 +53,7 @@ export default function CPU_RAM_GeneralGraph({ cpuUsage, memoryUsage, timestamp 
                 <CustomLegend />
             </div>
 
-            {data.length === 0 ? (
+            {historyData.length === 0 ? (
                 <div className="w-full h-[220px] flex items-center justify-center">
                     <span className="text-[11px] text-t2 font-inter uppercase tracking-widest animate-pulse">
                         awaiting data...
@@ -96,7 +61,7 @@ export default function CPU_RAM_GeneralGraph({ cpuUsage, memoryUsage, timestamp 
                 </div>
             ) : (
                 <ResponsiveContainer width="100%" height={220}>
-                    <LineChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <LineChart data={historyData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                         <CartesianGrid vertical={false} stroke="#4147551A" />
 
                         <XAxis
@@ -104,7 +69,7 @@ export default function CPU_RAM_GeneralGraph({ cpuUsage, memoryUsage, timestamp 
                             tick={{ fill: "#8B90A1", fontSize: 10 }}
                             axisLine={false}
                             tickLine={false}
-                            interval={data.length > 6 ? Math.floor(data.length / 6) : 0}
+                            interval={historyData.length > 6 ? Math.floor(historyData.length / 6) : 0}
                         />
 
                         <YAxis
