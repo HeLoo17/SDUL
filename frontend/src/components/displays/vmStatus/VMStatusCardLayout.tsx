@@ -1,11 +1,18 @@
 import type { VM, vmDisplayFilterStatus } from "../../../types";
 import VMStatusCard from "./VMStatusCard";
 import { useState } from "react";
-import { FILTER_OPTIONS } from "../../../constants";
+import { VM_FILTER_OPTIONS } from "../../../constants";
 
 export default function VMStatusCardLayout({ vms }: { vms: VM[] }) {
     const [activeFilter, setActiveFilter] = useState<vmDisplayFilterStatus>('All');
     
+    const filteredVMs = vms.filter(vm => {
+        if (activeFilter === 'Running') return vm.status === 'running';
+        if (activeFilter === 'Paused') return vm.status === 'paused';
+        if (activeFilter === 'Stopped') return vm.status === 'stopped';
+        if (activeFilter === 'Error') return vm.status === 'error';
+        return true;
+    })
 
     return (
         <div>
@@ -13,11 +20,11 @@ export default function VMStatusCardLayout({ vms }: { vms: VM[] }) {
                 <div className="flex justify-end items-baseline">
                     {/* VMS FILTER BY STATUS */}
                     <div className="flex justify-between bg-primary-BACK rounded-lg p-1 gap-1">
-                        {FILTER_OPTIONS.map((filter) => (
+                        {VM_FILTER_OPTIONS.map((filter) => (
                             <button 
                                 key={filter}
                                 onClick={() => setActiveFilter(filter)}
-                                className={`w-[70px] text-[12px] text-t1 font-inter font-bold px-4 py-2 rounded-md
+                                className={`w-[80px] text-[12px] text-t1 font-inter font-bold px-4 py-2 rounded-md
                                     ${activeFilter === filter
                                         ? 'bg-t2 text-t3'
                                         : 'hover:bg-t2/30 hover:text-t3'
@@ -29,16 +36,40 @@ export default function VMStatusCardLayout({ vms }: { vms: VM[] }) {
                     </div>
                 </div>
             </div>
-            
-            <div className="w-full grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {vms.filter(vm => {
-                    if (activeFilter === 'Online') return vm.status === 'running';
-                    if (activeFilter === 'Offline') return vm.status === 'error' || vm.status === 'stopped';
-                    return true;
-                }).map((vm) => (
-                    <VMStatusCard key={vm.id} {...vm} />
-                ))}
+            {/* CHART LEGEND */}
+            <div className="flex justify-end">
+                <div className="flex justify-between gap-6">
+                    <div className="flex gap-2 items-center">
+                        <span className="font-inter text-[#3C90FF] text-[10px]">CPU</span>
+                        <div className="h-1 w-10 bg-[#3C90FF] rounded-full" />
+                    </div>
+                    <div className="flex gap-2 items-center">
+                        <span className="font-inter text-[#00FFCC] text-[10px]">Memory</span>
+                        <div className="h-1 w-10 bg-[#00FFCC] rounded-full" />
+                    </div>
+                    <div className="flex gap-2 items-center">
+                        <span className="font-inter text-[#B166FF] text-[10px]">Disk</span>
+                        <div className="h-1 w-10 bg-[#B166FF] rounded-full" />
+                    </div>
+                </div>
             </div>
+            
+            {filteredVMs.length === 0 ? (
+                <div className="w-full flex flex-col items-center justify-center py-6 rounded-xl border border-dashed border-t2/20 bg-primary-BACK/10">
+                    <p className="text-[14px] font-inter text-t1 font-medium mb-2">
+                        No Virtual Machines Found
+                    </p>
+                    <p className="text-[12px] font-inter text-t1/60">
+                        There are currently no instances with a "{activeFilter}" status.
+                    </p>
+                </div>
+            ) : (
+                <div className="w-full grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {filteredVMs.map((vm) => (
+                        <VMStatusCard key={vm.id} {...vm} />
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
