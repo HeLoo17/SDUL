@@ -67,6 +67,7 @@ export interface RawVMAPI {
 function normaliseVMStatus(raw: string): vmStatus {
     if (raw === "running") return "running";
     if (raw === "stopped") return "stopped";
+    if (raw === "paused") return "paused";
     return "error";     // unknown and others treat as error
 }
 

@@ -133,6 +133,8 @@ def _fetch_node_vms(client: ProxmoxClient, node_name: str) -> list[dict]:
         for vm in raw_vms:
             entry = dict(vm)
             entry["node"] = node_name
+            if entry.get("qmpstatus") == "paused":
+                entry["status"] = "paused"
             vms.append(entry)
         return vms
     except RuntimeError:
