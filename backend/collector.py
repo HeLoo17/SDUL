@@ -126,19 +126,42 @@ def fetch_nodes(client: ProxmoxClient) -> list[dict]:
 
 # Raw VM list from '/nodes/{node}/qemu' for online nodes
 # Add 'node' field to tag where the VM is hosted
+def _enrich_vm_status(client: ProxmoxClient, entry: dict, node_name: str, vmid: int):
+    try:
+        status_data = client.get(f"/nodes/{node_name}/qemu/{vmid}/status/current")["data"]
+        qmp = status_data.get("qmpstatus")
+        if qmp == "paused":
+            entry["status"] = "paused"
+    except RuntimeError:
+        pass
+
+
 def _fetch_node_vms(client: ProxmoxClient, node_name: str) -> list[dict]:
     try:
         raw_vms = client.get(f"/nodes/{node_name}/qemu")["data"]
         vms = []
-        for vm in raw_vms:
-            entry = dict(vm)
-            entry["node"] = node_name
-            if entry.get("qmpstatus") == "paused":
-                entry["status"] = "paused"
-            vms.append(entry)
+        
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
+            futures = {}
+            for vm in raw_vms:
+                entry = dict(vm)
+                entry["node"] = node_name
+                # Only check paused state for "running" VMs
+                if entry.get("status") == "running":
+                    f = pool.submit(_enrich_vm_status, client, entry, node_name, entry["vmid"])
+                    futures[f] = entry
+                else:
+                    vms.append(entry)
+            
+            for future in as_completed(futures):
+                exc = future.exception()
+                if exc:
+                    print(f"  WARN: VM status enrich error: {exc}")
+                vms.append(futures[future])
+        
         return vms
     except RuntimeError:
-        return []  # node went offline mid-collection — return empty
+        return []
 
 
 def fetch_vms(client: ProxmoxClient, nodes: list[dict]) -> list[dict]:
