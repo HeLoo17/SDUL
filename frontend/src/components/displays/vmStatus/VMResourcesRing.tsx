@@ -1,8 +1,10 @@
 import { Pie, PieChart, ResponsiveContainer } from "recharts";
 
-import NodeIcon from '../../../assets/icons/nodes.svg?react';
+import VMIcon from '../../../assets/icons/vm.svg?react';
+import OfflineIcon from '../../../assets/icons/disconnected_node.svg?react';
 
 interface VMREsourcesProps {
+    status: boolean,
     cpu: number;
     memory: number;
     disk: number;
@@ -13,22 +15,18 @@ const clamp = (v: number) => Math.min(100, Math.max(0, v));
 
 // Each sector = 120°
 const CPU_START = 90;
-const RAM_START = -30;
-const DISK_START = -150;
+const RAM_START = -90;
+// const DISK_START = -150;
 
-export default function VWMResourcesRing({
-    cpu,
-    memory,
-    disk,
-    size = 80
-}: VMREsourcesProps) {
 
-    const INNER = 30;
-    const OUTER = 40;
+export default function VWMResourcesRing({ status, cpu, memory, disk, size = 60 }: VMREsourcesProps) {
 
-    const CPU = clamp(cpu);
-    const RAM = clamp(memory);
-    const DISK = clamp(disk);
+    const INNER = 3*size/8;
+    const OUTER = size/2;
+
+    const data = status ? { cpu: clamp(cpu), memory: clamp(memory), disk: clamp(disk) } : { cpu: 0, memory: 0, disk: 0 }
+
+    const CenterIcon =  status ? VMIcon : OfflineIcon;
 
     return (
         <div className="relative w-full" style={{ height: size }}>
@@ -40,7 +38,7 @@ export default function VWMResourcesRing({
                         data={[
                             { value: 1, fill: "#262A34" },
                             { value: 1, fill: "#262A34" },
-                            { value: 1, fill: "#262A34" }
+                            // { value: 1, fill: "#262A34" }
                         ]}
                         dataKey="value"
                         cx="50%"
@@ -56,14 +54,14 @@ export default function VWMResourcesRing({
                     {/* CPU */}
                     <Pie
                         data={[
-                            { value: CPU, fill: "#60A5FA" },
-                            { value: 100 - CPU, fill: "transparent" }
+                            { value: data.cpu, fill: "#60A5FA" },
+                            { value: 100 - data.cpu, fill: "transparent" }
                         ]}
                         dataKey="value"
                         cx="50%"
                         cy="50%"
                         startAngle={CPU_START}
-                        endAngle={CPU_START - 120}
+                        endAngle={CPU_START - 180}
                         innerRadius={INNER}
                         outerRadius={OUTER}
                         stroke="none"
@@ -73,14 +71,14 @@ export default function VWMResourcesRing({
                     {/* RAM */}
                     <Pie
                         data={[
-                            { value: RAM, fill: "#FDBA74" },
-                            { value: 100 - RAM, fill: "transparent" }
+                            { value: data.memory, fill: "#FDBA74" },
+                            { value: 100 - data.memory, fill: "transparent" }
                         ]}
                         dataKey="value"
                         cx="50%"
                         cy="50%"
                         startAngle={RAM_START}
-                        endAngle={RAM_START - 120}
+                        endAngle={RAM_START - 180}
                         innerRadius={INNER}
                         outerRadius={OUTER}
                         stroke="none"
@@ -88,10 +86,10 @@ export default function VWMResourcesRing({
                     />
 
                     {/* DISK */}
-                    <Pie
+                    {/* <Pie
                         data={[
-                            { value: DISK, fill: "#C4D4FF" },
-                            { value: 100 - DISK, fill: "transparent" }
+                            { value: data.disk, fill: "#C4D4FF" },
+                            { value: 100 - data.disk, fill: "transparent" }
                         ]}
                         dataKey="value"
                         cx="50%"
@@ -102,13 +100,13 @@ export default function VWMResourcesRing({
                         outerRadius={OUTER}
                         stroke="none"
                         cornerRadius={8}
-                    />
+                    /> */}
 
                 </PieChart>
             </ResponsiveContainer>
 
             <div className="absolute inset-0 flex items-center justify-center">
-                <NodeIcon className="h-6 w-6 text-t3" />
+                <CenterIcon className="h-6 w-6 text-t3" />
             </div>
         </div>
     );

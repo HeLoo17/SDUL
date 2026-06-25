@@ -34,7 +34,7 @@ export default function NodeStatusLayout({ nodes }: { nodes: Node[] }) {
                                         <button 
                                             key={filter}
                                             onClick={() => setActiveFilter(filter)}
-                                            className={`w-[70px] text-[12px] text-t1 font-in=>ter font-bold px-4 py-2 rounded-md
+                                            className={`w-[70px] text-[12px] text-t1 font-inter font-bold px-4 py-2 rounded-md
                                                 ${activeFilter === filter
                                                     ? 'bg-t2 text-t3'
                                                     : 'hover:bg-t2/30 hover:text-t3'

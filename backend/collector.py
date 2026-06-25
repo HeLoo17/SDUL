@@ -160,11 +160,8 @@ def fetch_vms(client: ProxmoxClient, nodes: list[dict]) -> list[dict]:
     return all_vms
 
 
-# ---------------------------------------------------------------------------
 # Single call to return both nodes and vms data
 # Used by background thread in app.py
-# ---------------------------------------------------------------------------
-
 def fetch_all(client: ProxmoxClient) -> dict:
     nodes = fetch_nodes(client)
     vms = fetch_vms(client, nodes)

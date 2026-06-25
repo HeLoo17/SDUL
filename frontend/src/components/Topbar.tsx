@@ -4,7 +4,7 @@ import RefreshIcon from "../assets/buttons/refresh.svg?react";
 
 export default function Topbar({title}: { title: String}) {
     return (
-        <aside className="h-[76px] w-full bg-primary flex justify-start px-8 bg-primary">
+        <aside className="h-[76px] w-full bg-primary flex justify-start px-8">
             <div className="w-1/2 h-full flex justify-start items-center">
                 <h1 className="h-fit w-1/2 text-[14px] text-t3 font-bold font-inter uppercase">{title}</h1>
             </div>
