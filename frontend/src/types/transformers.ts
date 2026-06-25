@@ -20,8 +20,7 @@ export interface RawNodeAPI {
     maxdisk?: number;
     netin?:    number;
     netout?:   number;
-    diskread?:  number;
-    diskwrite?: number;
+    iowait?: number;
     ip_address?: string | null;
 }
 
@@ -68,6 +67,7 @@ export interface RawVMAPI {
 function normaliseVMStatus(raw: string): vmStatus {
     if (raw === "running") return "running";
     if (raw === "stopped") return "stopped";
+    if (raw === "paused") return "paused";
     return "error";     // unknown and others treat as error
 }
 
@@ -101,7 +101,31 @@ export function sumThroughput(nodes: RawNodeAPI[], key: 'net' | 'disk'): number 
     .filter((n) => n.status === 'online')
     .reduce((acc, n) => {
       if (key === 'net')  return acc + (n.netin  ?? 0) + (n.netout  ?? 0);
-      if (key === 'disk') return acc + (n.diskread ?? 0) + (n.diskwrite ?? 0);
+      if (key === 'disk') return acc + ((n.iowait ?? 0) * 100);
       return acc;
     }, 0);
+}
+
+// Uptime transformer
+export function formatUptime(totalSeconds: number): string {
+    if (!totalSeconds || totalSeconds <= 0) return "-";
+
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    if (days > 0) {
+        return `${days}d ${hours}h ${minutes}m ${seconds}s`;
+    }
+
+    if (hours > 0) {
+        return `${hours}h ${minutes}m ${seconds}s`;
+    }
+
+    if (minutes > 0) {
+        return `${minutes}m ${seconds}s`;
+    }
+
+    return `${seconds}s`;
 }

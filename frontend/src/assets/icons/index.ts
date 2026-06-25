@@ -5,6 +5,7 @@ import logs from "./logs.svg?react";
 import historicalTrends from "./historical.svg?react";
 import systemStatus from "./system_status.svg?react";
 import settings from "./settings.svg?react";
+import vmPaused from "./vm_paused.svg?react";
 
 const navi = {
     dashboard,
@@ -13,7 +14,8 @@ const navi = {
     logs,
     historicalTrends,
     systemStatus,
-    settings
+    settings,
+    vmPaused
 };
 
 export default navi;

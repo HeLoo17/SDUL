@@ -1,4 +1,6 @@
-export type vmStatus = 'running' | 'stopped' | 'error';
+export type vmStatus = 'running' | 'stopped' | 'error' | "paused";
+
+export type vmDisplayFilterStatus = 'All' | 'Online' | 'Offline';
 
 export interface RawVM {
     id: number;
