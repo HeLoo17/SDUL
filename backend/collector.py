@@ -145,6 +145,21 @@ def _enrich_vm_status(client: ProxmoxClient, entry: dict, node_name: str, vmid: 
             if lock is not None:
                 entry["status"] = "error"
 
+        balloon = status_data.get("ballooninfo")
+
+        if balloon:
+            used = (
+                balloon.get("total_mem", 0)
+                - balloon.get("free_mem", 0)
+                + balloon.get("mem_swapped_in", 0)
+            )
+
+            # Prevent invalid values
+            used = max(0, min(used, balloon.get("max_mem", used)))
+
+            entry["mem"] = used
+            entry["maxmem"] = balloon.get("max_mem", entry.get("maxmem"))
+
     except RuntimeError:
         pass
 
