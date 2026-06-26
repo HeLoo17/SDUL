@@ -1,8 +1,11 @@
 import NavItem from "./buttons/NavItem";
 import logo from "../assets/logo.svg";
+import simple_logo from "../../public/simple_logo.svg"
 import navi from "../assets/icons";
+import { useState } from "react";
 
 export default function Sidebar() {
+    const [collapsed, setCollapsed] = useState(false);
 
     const navItems = [
         { label: "Dashboard", icon: navi.dashboard, path: "/dashboard" },
@@ -14,17 +17,34 @@ export default function Sidebar() {
     ];
 
     return (
-        <div className="w-[256px] h-screen bg-primary flex flex-col px-4 py-8">
-            <div className="w-full h-[83px] px-4 px-3 flex flex-col justify-center">
-                <img src={logo} alt="LabEye" className="w-[90px] h-[22px]" />
-                <span className="text-[8px] text-t1 font-inter font-bold uppercase">observer of laboratory</span>
-            </div>
+        <div 
+            className="h-screen bg-primary flex flex-col px-4 py-8"
+            style={{width: collapsed ? '80px' : '256px', minWidth: collapsed ? '80px' : '256px'}}
+        >
+            <button 
+                onClick={() => setCollapsed(prev => !prev)}
+                className="flex items-center px-4 py-8 hover:opacity-70 transition-opacity"
+                style={{ height: '83px', minHeight: '83px' }}
+                aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+                {collapsed ? (
+                    <div className="flex-col w-full flex justify-center">
+                        <img src={simple_logo} alt="LabEye" className="w-[90px] h-[22px]" />
+                        <div className="h-[8px]"/>
+                    </div>
+                ) : (
+                    <div className="flex flex-col justify-center text-left">
+                        <img src={logo} alt="LabEye" className="w-[90px] h-[22px]" />
+                        <span className="text-[8px] text-t1 font-inter font-bold uppercase">observer of laboratory</span>
+                    </div>
+                )}
+            </button>
 
             <nav className="w-full h-fit " aria-label="Main Navigation">
                 <ul className="flex flex-col gap-2">
                     {navItems.map((item, index) => (
                         <li key={index}>
-                            <NavItem label={item.label} icon={item.icon} to={item.path} />
+                            <NavItem label={item.label} icon={item.icon} to={item.path} collapsed={collapsed}/>
                         </li>
                     ))}
                 </ul>
@@ -34,7 +54,7 @@ export default function Sidebar() {
                 <nav className="w-full h-fit " aria-label="System Settings">
                     <ul>
                         <li>
-                            <NavItem label="Settings" icon={navi.settings} to={"/settings"} />
+                            <NavItem label="Settings" icon={navi.settings} to={"/settings"} collapsed={collapsed}/>
                         </li>
                     </ul>
                 </nav>
