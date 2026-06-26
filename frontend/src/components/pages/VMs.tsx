@@ -1,70 +1,69 @@
 import deco from "../../assets/deco";
 import VM_KPICards from "../displays/VM_KPICards";
 import { transformVMs, type VM } from '../../types';
-import VmDetailedTable from "../displays/vmDetailTable/VmDetailedTable";
 import VMStausCardLayout from "../displays/vmStatus/VMStatusCardLayout";
 import { useOutletContext } from "react-router-dom";
 import type { UseSocketReturn } from "../../hooks/useSocket";
 import navi from "../../assets/icons";
 import VMTagsGraph from "../displays/VMTagsGraph";
 
-const mockVMs: VM[] = [
-  {
-    id: 1,
-    vmid: "101",
-    vmName: "web-server-production",
-    status: "running",
-    cpuUsage: 42.5,
-    memoryUsage: 68.2,
-    diskUsage: 55.0,
-    uptime: 1209600, // 14 days in seconds
-    node: "lab-d-proxmox-node-01",
-    tags: ["production", "frontend", "nginx"],
-    template: false,
-    lock: null
-  },
-  {
-    id: 2,
-    vmid: "102",
-    vmName: "db-backup-replica",
-    status: "stopped",
-    cpuUsage: 0,
-    memoryUsage: 0,
-    diskUsage: 89.1,
-    uptime: 0,
-    node: "lab-d-proxmox-node-01",
-    tags: ["database", "backup"],
-    template: true,
-    lock: null
-  },
-  {
-    id: 3,
-    vmid: "103",
-    vmName: "analytics-worker-01",
-    status: "paused",
-    cpuUsage: 1.2,
-    memoryUsage: 90.5,
-    diskUsage: 34.7,
-    uptime: 345600, // 4 days in seconds
-    node: "lab-d-proxmox-node-02",
-    tags: ["worker", "paused-state"],
-    template: false,
-    lock: "suspended"
-  },
-  {
-    id: 4,
-    vmid: "104",
-    vmName: "legacy-ubuntu-template",
-    status: "error",
-    cpuUsage: 0,
-    memoryUsage: 0,
-    diskUsage: 12.4,
-    uptime: 0,
-    node: "lab-d-proxmox-node-02",
-    template: false,
-    lock: "mounted"
-  }
-];
+// const mockVMs: VM[] = [
+//   {
+//     id: 1,
+//     vmid: "101",
+//     vmName: "web-server-production",
+//     status: "running",
+//     cpuUsage: 42.5,
+//     memoryUsage: 68.2,
+//     diskUsage: 55.0,
+//     uptime: 1209600, // 14 days in seconds
+//     node: "lab-d-proxmox-node-01",
+//     tags: ["production", "frontend", "nginx"],
+//     template: false,
+//     lock: null
+//   },
+//   {
+//     id: 2,
+//     vmid: "102",
+//     vmName: "db-backup-replica",
+//     status: "stopped",
+//     cpuUsage: 0,
+//     memoryUsage: 0,
+//     diskUsage: 89.1,
+//     uptime: 0,
+//     node: "lab-d-proxmox-node-01",
+//     tags: ["database", "backup"],
+//     template: true,
+//     lock: null
+//   },
+//   {
+//     id: 3,
+//     vmid: "103",
+//     vmName: "analytics-worker-01",
+//     status: "paused",
+//     cpuUsage: 1.2,
+//     memoryUsage: 90.5,
+//     diskUsage: 34.7,
+//     uptime: 345600, // 4 days in seconds
+//     node: "lab-d-proxmox-node-02",
+//     tags: ["worker", "paused-state"],
+//     template: false,
+//     lock: "suspended"
+//   },
+//   {
+//     id: 4,
+//     vmid: "104",
+//     vmName: "legacy-ubuntu-template",
+//     status: "error",
+//     cpuUsage: 0,
+//     memoryUsage: 0,
+//     diskUsage: 12.4,
+//     uptime: 0,
+//     node: "lab-d-proxmox-node-02",
+//     template: false,
+//     lock: "mounted"
+//   }
+// ];
 
 export default function VMs() {
     const { rawData, vmTypeHistory } = useOutletContext<{ rawData: UseSocketReturn, vmTypeHistory: any[] }>();
@@ -88,7 +87,7 @@ export default function VMs() {
             </div>
 
             <div className="w-full h-fit">
-                <VMStausCardLayout vms={mockVMs} />
+                <VMStausCardLayout vms={vms} />
             </div>
             <div>
                 <VMTagsGraph data={vmTypeHistory}/>
