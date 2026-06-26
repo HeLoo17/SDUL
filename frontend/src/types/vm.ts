@@ -28,4 +28,5 @@ export interface VM {
     uptime: number;
     node: string;
     tags?: string[];
+    template: boolean;
 }

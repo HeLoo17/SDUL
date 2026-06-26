@@ -2,17 +2,17 @@ import { formatUptime, type VM } from "../../../types";
 import VWMResourcesRing from "./VMResourcesRing";
 import VMPaused from "../../../assets/icons/vm_paused.svg?react";
 
-export default function VMStatusCard({ vmid, vmName, status, cpuUsage, memoryUsage, diskUsage, uptime, node }: Omit<VM, 'id'>) {
-    const backgroundColor = status == 'running' ? 'bg-primary-BACK' : status == 'paused' ? 'bg-primary-BACK opacity-60' : 'bg-primary-BACK opacity-30';
+export default function VMStatusCard({ vmid, vmName, status, cpuUsage, memoryUsage, diskUsage, uptime, node, template, tags }: Omit<VM, 'id'>) {
+    const backgroundColor = template ? 'bg-primary-BACK' : status == 'running' ? 'bg-primary-BACK' : status == 'paused' ? 'bg-primary-BACK opacity-60' : 'bg-primary-BACK opacity-40';
     const vmUptime = status == 'running' ? formatUptime(uptime) : '-';
     const formattedVmName = vmName.length > 8 ? vmName.slice(0, 8) + '...' : vmName;
     const trimmedNodeName = node.slice(14);
 
     return (
-        <div className={`h-fit w-full px-8 py-6 rounded-xl ${backgroundColor} flex gap-3 items-center justify-center transition-opacity`}>
+        <div className={`h-fit w-full px-8 py-6 rounded-xl ${backgroundColor} flex gap-3 items-center justify-center transition-opacity ${template ? 'ring-[#4a3a18] ring-4 ring-inset' : 'border-transparent'}`}>
             {/* RESOURCES CHART CONTAINER */}
             <div className="flex-[3] h-fit flex items-center justify-center">
-                <VWMResourcesRing status={status === 'running' || status === 'paused' } cpu={cpuUsage} memory={memoryUsage} disk={diskUsage} />
+                <VWMResourcesRing tags={tags} template={template} status={status === 'running' || status === 'paused' } cpu={cpuUsage} memory={memoryUsage} disk={diskUsage} />
             </div>
             <div className="flex-[4] flex flex-col items-start gap-1 ">
                 <div className="w-full flex gap-1 items-baseline justify-between">

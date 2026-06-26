@@ -1,9 +1,10 @@
 import { Pie, PieChart, ResponsiveContainer } from "recharts";
 
-import VMIcon from '../../../assets/icons/vm.svg?react';
-import OfflineIcon from '../../../assets/icons/disconnected_node.svg?react';
+import navi from "../../../assets/icons";
 
 interface VMREsourcesProps {
+    tags?: string[];
+    template: boolean;
     status: boolean,
     cpu: number;
     memory: number;
@@ -19,14 +20,30 @@ const RAM_START = -90;
 // const DISK_START = -150;
 
 
-export default function VWMResourcesRing({ status, cpu, memory, disk, size = 60 }: VMREsourcesProps) {
+function IconMapping(tags?: string[]) {
+    const tagsToIcon = [
+        { tag: 'network-learning', icon: navi.network},
+        { tag: 'main-infra', icon: navi.infra},
+    ]
+
+    const matchedTag = tags 
+        ? tagsToIcon.find(item => tags.includes(item.tag))
+        : null;
+
+    const selectIcon = tags ? matchedTag ? matchedTag.icon : navi.vm: navi.vm;
+
+    return selectIcon;
+}
+
+
+export default function VWMResourcesRing({ tags, template, status, cpu, memory, disk, size = 60 }: VMREsourcesProps) {
 
     const INNER = 3*size/8;
     const OUTER = size/2;
 
     const data = status ? { cpu: clamp(cpu), memory: clamp(memory), disk: clamp(disk) } : { cpu: 0, memory: 0, disk: 0 }
 
-    const CenterIcon =  status ? VMIcon : OfflineIcon;
+    const CenterIcon =  template ? navi.template : status ? IconMapping(tags) : navi.offlineIcon;
 
     return (
         <div className="relative w-full" style={{ height: size }}>
