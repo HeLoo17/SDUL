@@ -29,12 +29,12 @@ export default function Sidebar() {
             >
                 {collapsed ? (
                     <div className="flex-col w-full flex justify-center">
-                        <img src={simple_logo} alt="LabEye" className="w-[90px] h-[22px]" />
-                        <div className="h-[8px]"/>
+                        <img src={simple_logo} alt="LabEye" className="w-[90px] h-[21px]" />
+                        <div className="h-[16px]"/>
                     </div>
                 ) : (
                     <div className="flex flex-col justify-center text-left">
-                        <img src={logo} alt="LabEye" className="w-[90px] h-[22px]" />
+                        <img src={logo} alt="LabEye" className="w-[90px] h-[23px]" />
                         <span className="text-[8px] text-t1 font-inter font-bold uppercase">observer of laboratory</span>
                     </div>
                 )}
