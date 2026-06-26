@@ -61,7 +61,7 @@ export function useChartData(rawData: UseSocketReturn): ChartDataReturn {
             liveSummary?.node_resources?.memory?.used_pct ??
             memoryUsage(nodes);
 
-        const signature = `${network}-${disk}-${currentCpu}-${currentMem}`;
+        const signature = `${network.toFixed(0)}-${disk.toFixed(2)}-${currentCpu.toFixed(1)}-${currentMem.toFixed(1)}`;
 
         if (prevSignatureRef.current === signature) return;
 
