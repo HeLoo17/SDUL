@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { type UseSocketReturn } from "./useSocket";
-import { sumThroughput } from "../types";
+import { sumThroughput, transformVMs, type VM } from "../types";
 
 const MAX_SLICES = 30;
+const VM_TAGS_CHART_MAX_SLICES = 300;
 
 function nowLabel(): string {
     return new Date().toLocaleTimeString('en-GB', {
@@ -27,17 +28,20 @@ function memoryUsage(nodes: any[]): number {
 export interface ChartDataReturn {
     slices: any[];
     resourceHistory: any[];
+    vmTypeHistory: any[];
 }
 
 export function useChartData(rawData: UseSocketReturn): ChartDataReturn {
     const [slices, setSlices] = useState<any[]>([]);
     const [resourceHistory, setResourceHistory] = useState<any[]>([]);
+    const [vmTypeHistory, setVmTypeHistory] = useState<VMTypeData[]>([]);
 
     const prevNodesRef = useRef<any[]>([]);
     const prevSignatureRef = useRef<string>("");
 
     // IMPORTANT: stabilize nodes reference
     const nodes = rawData?.nodes ?? [];
+    const vms = rawData?.vms ?? [];
 
     useEffect(() => {
         if (!rawData || !nodes || nodes.length === 0) return;
@@ -80,7 +84,40 @@ export function useChartData(rawData: UseSocketReturn): ChartDataReturn {
         });
 
         prevNodesRef.current = nodes;
+
+        const vmTypeSnapshot = buildVMTagSnapshot(transformVMs(vms));
+
+        setVmTypeHistory((prev) => {
+            const next = [
+                ...prev,
+                {
+                    time,
+                    ...vmTypeSnapshot,
+                },
+            ];
+            return next.slice(-VM_TAGS_CHART_MAX_SLICES);
+        });
     }, [rawData]);
 
-    return { slices, resourceHistory };
+    return { slices, resourceHistory, vmTypeHistory };
+}
+
+export type VMTypeData = {
+  time: string;
+  [vmType: string]: number | string;
+};
+
+function buildVMTagSnapshot(vms: VM[]): Record<string, number> {
+    const result: Record<string, number> = {};
+
+    for (const vm of vms) {
+        const tag =
+            vm.tags && vm.tags.length > 0
+                ? vm.tags[0]
+                : "untagged";
+
+        result[tag] = (result[tag] || 0) + 1;
+    }
+
+    return result;
 }
