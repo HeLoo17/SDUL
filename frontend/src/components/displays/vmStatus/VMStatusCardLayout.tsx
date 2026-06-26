@@ -16,7 +16,7 @@ export default function VMStatusCardLayout({ vms }: { vms: VM[] }) {
 
     return (
         <div>
-            <div className="flex justify-between items-baseline pb-6">
+            <div className="flex justify-between items-baseline pb-3">
                 <div className="flex justify-end items-baseline">
                     {/* VMS FILTER BY STATUS */}
                     <div className="flex justify-between bg-primary-BACK rounded-lg p-1 gap-1">
@@ -37,19 +37,15 @@ export default function VMStatusCardLayout({ vms }: { vms: VM[] }) {
                 </div>
             </div>
             {/* CHART LEGEND */}
-            <div className="flex justify-end">
+            <div className="flex justify-end pb-3">
                 <div className="flex justify-between gap-6">
                     <div className="flex gap-2 items-center">
-                        <span className="font-inter text-[#3C90FF] text-[10px]">CPU</span>
-                        <div className="h-1 w-10 bg-[#3C90FF] rounded-full" />
+                        <span className="font-inter text-[#60A5FA] text-[10px]">CPU</span>
+                        <div className="h-1 w-10 bg-[#60A5FA] rounded-full" />
                     </div>
                     <div className="flex gap-2 items-center">
-                        <span className="font-inter text-[#00FFCC] text-[10px]">Memory</span>
-                        <div className="h-1 w-10 bg-[#00FFCC] rounded-full" />
-                    </div>
-                    <div className="flex gap-2 items-center">
-                        <span className="font-inter text-[#B166FF] text-[10px]">Disk</span>
-                        <div className="h-1 w-10 bg-[#B166FF] rounded-full" />
+                        <span className="font-inter text-[#FDBA74] text-[10px]">Memory</span>
+                        <div className="h-1 w-10 bg-[#FDBA74] rounded-full" />
                     </div>
                 </div>
             </div>

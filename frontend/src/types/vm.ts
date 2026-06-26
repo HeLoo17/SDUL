@@ -27,4 +27,5 @@ export interface VM {
     diskUsage: number;
     uptime: number;
     node: string;
+    tags?: string[];
 }
