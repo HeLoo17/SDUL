@@ -125,17 +125,31 @@ def fetch_nodes(client: ProxmoxClient) -> list[dict]:
 
 
 # Raw VM list from '/nodes/{node}/qemu' for online nodes
-# Add 'node' field to tag where the VM is hosted
+# Proxmox itself documents; treat any lock on a stopped VM as error.
+_ERROR_LOCKS = {"backup", "snapshot", "migrate", "clone", "rollback", "suspended", "suspending", "block"}
+
+# Check if VM status 'paused' for 'running' VMs
 def _enrich_vm_status(client: ProxmoxClient, entry: dict, node_name: str, vmid: int):
     try:
         status_data = client.get(f"/nodes/{node_name}/qemu/{vmid}/status/current")["data"]
         qmp = status_data.get("qmpstatus")
-        if qmp == "paused":
-            entry["status"] = "paused"
+        lock = status_data.get("lock")
+
+        current_status = entry.get("status", "stopped")
+
+        if current_status == "running":
+            if qmp == "paused":
+                entry["status"] = "paused"
+        
+        elif current_status == "stopped":
+            if lock is not None:
+                entry["status"] = "error"
+
     except RuntimeError:
         pass
 
 
+# Add 'node' field to tag where the VM is hosted
 def _fetch_node_vms(client: ProxmoxClient, node_name: str) -> list[dict]:
     try:
         raw_vms = client.get(f"/nodes/{node_name}/qemu")["data"]

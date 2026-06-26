@@ -63,6 +63,7 @@ export interface RawVMAPI {
     node?: string;
     tags?: string;
     template: boolean;
+    lock?: string | null;
 }
 
 // Normalized for a VM

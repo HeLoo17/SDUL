@@ -29,4 +29,5 @@ export interface VM {
     node: string;
     tags?: string[];
     template: boolean;
+    lock?: string | null;
 }
