@@ -160,12 +160,10 @@ def _fetch_node_vms(client: ProxmoxClient, node_name: str) -> list[dict]:
             for vm in raw_vms:
                 entry = dict(vm)
                 entry["node"] = node_name
+                entry["lock"] = entry.get("lock")
                 # Only check paused state for "running" VMs
-                if entry.get("status") == "running":
-                    f = pool.submit(_enrich_vm_status, client, entry, node_name, entry["vmid"])
-                    futures[f] = entry
-                else:
-                    vms.append(entry)
+                f = pool.submit(_enrich_vm_status, client, entry, node_name, entry["vmid"])
+                futures[f] = entry
             
             for future in as_completed(futures):
                 exc = future.exception()
