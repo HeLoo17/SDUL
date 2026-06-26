@@ -61,6 +61,7 @@ export interface RawVMAPI {
     maxdisk?: number;   
     uptime?: number;    //seconds
     node?: string;
+    tags?: string;
 }
 
 // Normalized for a VM
@@ -86,6 +87,7 @@ export function transformVM(raw: RawVMAPI, index: number): VM {
     diskUsage,
     uptime: raw.uptime ?? 0,
     node: raw.node ?? "—",
+    tags: raw.tags ? raw.tags.split(/[;,]/).map(tag => tag.trim().toLowerCase()).filter(Boolean) : [],
     };
 }
 

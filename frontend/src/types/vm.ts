@@ -1,6 +1,6 @@
 export type vmStatus = 'running' | 'stopped' | 'error' | "paused";
 
-export type vmDisplayFilterStatus = 'All' | 'Online' | 'Offline';
+export type vmDisplayFilterStatus = 'All' | 'Running' | 'Paused' | 'Stopped' | 'Error';
 
 export interface RawVM {
     id: number;
@@ -27,4 +27,5 @@ export interface VM {
     diskUsage: number;
     uptime: number;
     node: string;
+    tags?: string[];
 }
