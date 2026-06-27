@@ -19,19 +19,42 @@ const REST_INTERVAL = 3000;         //Tier 2: poll every 5 seconds
 const INFLUX_INTERVAL = 3000;       //Tier 3: poll every 5 seconds
 const TIER_CHECK_DELAY = 3000;      //Tier 1 disconnect buffer time before switch to Tier 2
 
+// System status health snapshot speed (ms)
+const STATUS_POLL_INTERVAL = 10_000;
+
 type DataSource = "websocket" | "rest" | "influx_stale" | "unavailable";
 
-interface SummaryData {
-    tier: number;
-    last_update: number;
-    nodes_reached: number;
-    vms_reached: number;
-}
+type SummaryData = unknown;
 
 interface ApiResponse<T> {
     ok: boolean;
     error?: string;
     data: T;
+}
+
+// System Status
+function tierFromSource(source: DataSource): 1 | 2 | 3 | null {
+    if (source === "websocket")    return 1;
+    if (source === "rest")         return 2;
+    if (source === "influx_stale") return 3;
+    return null;
+}
+
+// Shape of the /api/status response data field
+interface ApiStatusPayload {
+    last_updated: string | null;
+    error: string | null;
+    nodes_cached: number;
+    vms_cached: number;
+}
+
+export interface SystemStatus {
+    tier: 1 | 2 | 3 | null;
+    lastUpdated: string | null;
+    error: string | null;
+    nodesCached: number;
+    vmsCached: number;
+    dataSource: DataSource;
 }
 
 interface HistoryRow {
@@ -73,6 +96,7 @@ export interface UseSocketReturn {
     vmEvents: SocketEvent[];
     allEvents: SocketEvent[];
     collectorError: string | null;
+    systemStatus: SystemStatus; 
 }
 
 // Fetch helper 
@@ -132,13 +156,15 @@ export function useSocket(): UseSocketReturn {
     const [dataSource, setDataSource] = useState<DataSource>("unavailable");
     const [dataTimestamp, setDataTimestamp] = useState<string | null>(null);
     const [collectorError, setCollectorError] = useState<string | null>(null);
-    const [nodeEvents, setNodeEvents] = useState<SocketEvent[]>([])
-    const [vmEvents, setVmEvents] =  useState<SocketEvent[]>([])
+    const [nodeEvents, setNodeEvents] = useState<SocketEvent[]>([]);
+    const [vmEvents, setVmEvents] =  useState<SocketEvent[]>([]);
+    const [apiStatusPayload, setApiStatusPayload] = useState<ApiStatusPayload | null>(null);
 
     const wsConnectedRef = useRef(false);
     const restWorkingRef = useRef(false);
     const restIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const influxIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const statusIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     const addEvent = useCallback((
         setter: Dispatch<SetStateAction<SocketEvent[]>>,
@@ -161,6 +187,31 @@ export function useSocket(): UseSocketReturn {
         setSummary(summary ?? null);
         setDataSource(source);
         setDataTimestamp(timestamp ?? new Date().toISOString());
+    }, []);
+
+    // System Status Polling
+    const fetchApiStatus = useCallback(async () => {
+        try {
+            const data = await apiFetch<ApiStatusPayload>("/api/status");
+            setApiStatusPayload(data);
+        } catch {
+            // On failure keep the last known payload so the UI doesn't reset to null
+        }
+    }, []);
+
+ 
+    const startStatusPolling = useCallback(() => {
+        if (statusIntervalRef.current) return;
+        fetchApiStatus(); // immediate first fetch
+        statusIntervalRef.current = setInterval(fetchApiStatus, STATUS_POLL_INTERVAL);
+    }, [fetchApiStatus]);
+
+ 
+    const stopStatusPolling = useCallback(() => {
+        if (statusIntervalRef.current) {
+            clearInterval(statusIntervalRef.current);
+            statusIntervalRef.current = null;
+        }
     }, []);
 
 
@@ -188,17 +239,17 @@ export function useSocket(): UseSocketReturn {
     //Tier 2 - REST API fallback
     const restTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-const stopRestPolling = useCallback(() => {
-    if (restTimeoutRef.current) {
-        clearTimeout(restTimeoutRef.current);
-        restTimeoutRef.current = null;
-    }
-    if (restIntervalRef.current) {
-        clearInterval(restIntervalRef.current);
-        restIntervalRef.current = null;
-    }
-    restWorkingRef.current = false;
-}, []);
+    const stopRestPolling = useCallback(() => {
+        if (restTimeoutRef.current) {
+            clearTimeout(restTimeoutRef.current);
+            restTimeoutRef.current = null;
+        }
+        if (restIntervalRef.current) {
+            clearInterval(restIntervalRef.current);
+            restIntervalRef.current = null;
+        }
+        restWorkingRef.current = false;
+    }, []);
 
     const stopInfluxPolling = useCallback(() => {
         if(influxIntervalRef.current) {
@@ -263,6 +314,8 @@ const stopRestPolling = useCallback(() => {
             reconnectionDelay: 3000,
         });
 
+        startStatusPolling();
+
         // Connected
         socket.on("connect", () => {
             console.log("[tier1] WebSocket connected");
@@ -317,6 +370,7 @@ const stopRestPolling = useCallback(() => {
         return () => {
             socket.disconnect();
             stopRestPolling();
+            stopStatusPolling();
             stopInfluxPolling();
             if (restTimeoutRef.current) clearTimeout(restTimeoutRef.current);
         };
@@ -331,15 +385,29 @@ const stopRestPolling = useCallback(() => {
         [nodeEvents, vmEvents]
     );
 
+
+    const systemStatus = useMemo<SystemStatus>(() => ({
+        tier: tierFromSource(dataSource),
+        lastUpdated: apiStatusPayload?.last_updated ?? null,
+        // Prefer the live collector error from the WebSocket event; fall back to the
+        // error field returned by /api/status so the value is always up to date.
+        error: collectorError ?? apiStatusPayload?.error ?? null,
+        nodesCached: apiStatusPayload?.nodes_cached ?? 0,
+        vmsCached: apiStatusPayload?.vms_cached ?? 0,
+        dataSource,
+    }), [dataSource, collectorError, apiStatusPayload]);
+
+
     return {
         nodes,
         vms,
         summary,
         dataSource,              // "websocket" | "rest" | "influx_stale" | "unavailable"
         dataTimestamp,
-        nodeEvents,
+        nodeEvents,     
         vmEvents,
         allEvents,
-        collectorError
+        collectorError,
+        systemStatus
     }
 }
