@@ -3,8 +3,9 @@ import type {vmStatus} from "../../../types";
 export default function StatusTag({ status }: {status: vmStatus}) {
     const statusColors: Record<vmStatus, [string, string]> = {
         running: ['#4ADE80', '#1E2A24'],
-        stopped: ['#FFB4AB', '#2D1414'],
-        error:  ['#C1C6D7', '#31353F']
+        error: ['#FFB4AB', '#2D1414'],
+        stopped:  ['#C1C6D7', '#31353F'],
+        paused: ['#FFD5AB', '#4E3D2C']
     };
 
     const [textColor, bgColor] = statusColors[status] || ['#FFFFFF', '#31353F'];

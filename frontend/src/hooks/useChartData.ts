@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { type UseSocketReturn } from "./useSocket";
-import { sumThroughput } from "../types";
+import { sumThroughput, transformVMs, type VM } from "../types";
 
 const MAX_SLICES = 30;
+const VM_TAGS_CHART_MAX_SLICES = 300;
 
 function nowLabel(): string {
     return new Date().toLocaleTimeString('en-GB', {
@@ -27,17 +28,22 @@ function memoryUsage(nodes: any[]): number {
 export interface ChartDataReturn {
     slices: any[];
     resourceHistory: any[];
+    vmTypeHistory: any[];
 }
+
 
 export function useChartData(rawData: UseSocketReturn): ChartDataReturn {
     const [slices, setSlices] = useState<any[]>([]);
     const [resourceHistory, setResourceHistory] = useState<any[]>([]);
+    const [vmTypeHistory, setVmTypeHistory] = useState<VMTypeData[]>([]);
 
     const prevNodesRef = useRef<any[]>([]);
     const prevSignatureRef = useRef<string>("");
+    const knownTagsRef = useRef<Set<string>>(new Set());
 
     // IMPORTANT: stabilize nodes reference
     const nodes = rawData?.nodes ?? [];
+    const vms = rawData?.vms ?? [];
 
     useEffect(() => {
         if (!rawData || !nodes || nodes.length === 0) return;
@@ -61,7 +67,7 @@ export function useChartData(rawData: UseSocketReturn): ChartDataReturn {
             liveSummary?.node_resources?.memory?.used_pct ??
             memoryUsage(nodes);
 
-        const signature = `${network}-${disk}-${currentCpu}-${currentMem}`;
+        const signature = `${network.toFixed(0)}-${disk.toFixed(2)}-${currentCpu.toFixed(1)}-${currentMem.toFixed(1)}`;
 
         if (prevSignatureRef.current === signature) return;
 
@@ -80,7 +86,50 @@ export function useChartData(rawData: UseSocketReturn): ChartDataReturn {
         });
 
         prevNodesRef.current = nodes;
+
+        const vmTypeSnapshot = buildVMTagSnapshot(transformVMs(vms));
+
+        Object.keys(vmTypeSnapshot).forEach(tag =>
+            knownTagsRef.current.add(tag)
+        );
+
+        const completeSnapshot: Record<string, number> = {};
+
+        knownTagsRef.current.forEach(tag => {
+            completeSnapshot[tag] = vmTypeSnapshot[tag] ?? 0;
+        });
+
+        setVmTypeHistory((prev) => {
+            const next = [
+                ...prev,
+                {
+                    time,
+                    ...completeSnapshot,
+                },
+            ];
+            return next.slice(-VM_TAGS_CHART_MAX_SLICES);
+        });
     }, [rawData]);
 
-    return { slices, resourceHistory };
+    return { slices, resourceHistory, vmTypeHistory };
+}
+
+export type VMTypeData = {
+  time: string;
+  [vmType: string]: number | string;
+};
+
+function buildVMTagSnapshot(vms: VM[]): Record<string, number> {
+    const result: Record<string, number> = {};
+
+    for (const vm of vms) {
+        const tag =
+            vm.tags && vm.tags.length > 0
+                ? vm.tags[0]
+                : "untagged";
+
+        result[tag] = (result[tag] || 0) + 1;
+    }
+
+    return result;
 }

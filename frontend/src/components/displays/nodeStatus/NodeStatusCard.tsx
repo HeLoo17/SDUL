@@ -10,7 +10,7 @@ export default function NodeStatusCard({ nodeName, status, cpuUsage, memoryUsage
     const trimmedNodeName = nodeName.slice(14);
 
     return (
-        <div className={`h-fit w-full p-8 rounded-xl ${backgroundColor} flex flex-col gap-6 items-center justify-center transition-opacylity`}>
+        <div className={`h-fit w-full p-8 rounded-xl ${backgroundColor} flex flex-col gap-6 items-center justify-center transition-opacity`}>
             {/* CIRCLE CHART CONTAINER */}
             <div className="w-full h-fit flex items-center justify-center">
                 <RadialUsageChart status={status} cpuUsage={cpuUsage} memoryUsage={memoryUsage} diskUsage={diskUsage} />

@@ -7,7 +7,7 @@
  * T3 - InfluxDB Stale Data
  */
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { io } from "socket.io-client";
 import type { RawNodeAPI, RawVMAPI } from "../types";
@@ -181,14 +181,19 @@ export function useSocket(): UseSocketReturn {
 
 
     //Tier 2 - REST API fallback
-    const stopRestPolling = useCallback(() => {
-        if(restIntervalRef.current) {
-            clearInterval(restIntervalRef.current);
-            restIntervalRef.current = null;
-        } 
-        restWorkingRef.current = false;
-    }, []);
+    const restTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+const stopRestPolling = useCallback(() => {
+    if (restTimeoutRef.current) {
+        clearTimeout(restTimeoutRef.current);
+        restTimeoutRef.current = null;
+    }
+    if (restIntervalRef.current) {
+        clearInterval(restIntervalRef.current);
+        restIntervalRef.current = null;
+    }
+    restWorkingRef.current = false;
+}, []);
 
     const stopInfluxPolling = useCallback(() => {
         if(influxIntervalRef.current) {
@@ -233,17 +238,15 @@ export function useSocket(): UseSocketReturn {
 
 
     const startRestPolling = useCallback(() => {
-        // Check if already running
-        if (restIntervalRef.current) return;
+        if (restIntervalRef.current || restTimeoutRef.current) return; // guard both
 
-        // Delay before starting, gives WebSocket(Tier 1) time to reconnect 
-        setTimeout(() =>  {
-            if(!wsConnectedRef.current) {
+        restTimeoutRef.current = setTimeout(() => {
+            restTimeoutRef.current = null;
+            if (!wsConnectedRef.current) {
                 fetchRest();
                 restIntervalRef.current = setInterval(fetchRest, REST_INTERVAL);
-                console.log("[tier2] REST polling started");
             }
-        }, TIER_CHECK_DELAY)
+        }, TIER_CHECK_DELAY);
     }, [fetchRest]);
 
 
@@ -310,14 +313,18 @@ export function useSocket(): UseSocketReturn {
             socket.disconnect();
             stopRestPolling();
             stopInfluxPolling();
+            if (restTimeoutRef.current) clearTimeout(restTimeoutRef.current);
         };
     }, [applyMetrics, addEvent, startRestPolling, stopRestPolling, stopInfluxPolling]);
 
 
     // Combine event logs into newest align
-    const allEvents = [...nodeEvents, ...vmEvents]
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-        .slice(0, MAX_EVENTS);
+    const allEvents = useMemo(() =>
+        [...nodeEvents, ...vmEvents]
+            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+            .slice(0, MAX_EVENTS),
+        [nodeEvents, vmEvents]
+    );
 
     return {
         nodes,

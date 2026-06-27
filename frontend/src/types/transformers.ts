@@ -61,12 +61,16 @@ export interface RawVMAPI {
     maxdisk?: number;   
     uptime?: number;    //seconds
     node?: string;
+    tags?: string;
+    template: boolean;
+    lock?: string | null;
 }
 
 // Normalized for a VM
 function normaliseVMStatus(raw: string): vmStatus {
     if (raw === "running") return "running";
     if (raw === "stopped") return "stopped";
+    if (raw === "paused") return "paused";
     return "error";     // unknown and others treat as error
 }
 
@@ -85,6 +89,8 @@ export function transformVM(raw: RawVMAPI, index: number): VM {
     diskUsage,
     uptime: raw.uptime ?? 0,
     node: raw.node ?? "—",
+    tags: raw.tags ? raw.tags.split(/[;,]/).map(tag => tag.trim().toLowerCase()).filter(Boolean) : [],
+    template: raw.template,
     };
 }
 
@@ -103,4 +109,28 @@ export function sumThroughput(nodes: RawNodeAPI[], key: 'net' | 'disk'): number 
       if (key === 'disk') return acc + ((n.iowait ?? 0) * 100);
       return acc;
     }, 0);
+}
+
+// Uptime transformer
+export function formatUptime(totalSeconds: number): string {
+    if (!totalSeconds || totalSeconds <= 0) return "-";
+
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    if (days > 0) {
+        return `${days}d ${hours}h ${minutes}m ${seconds}s`;
+    }
+
+    if (hours > 0) {
+        return `${hours}h ${minutes}m ${seconds}s`;
+    }
+
+    if (minutes > 0) {
+        return `${minutes}m ${seconds}s`;
+    }
+
+    return `${seconds}s`;
 }
