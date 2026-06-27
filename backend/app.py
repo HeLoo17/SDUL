@@ -206,8 +206,8 @@ def collector_loop():
             for vmid, curr_status in curr_vm_states.items():
                 prev_status = prev_vm_states.get(vmid)
                 if prev_status is not None and prev_status != curr_status:
-                    socketio.emit("node_status_change", {
-                        "node": vmid,
+                    socketio.emit("vm_status_change", {
+                        "vm": vmid,
                         "prev_status": prev_status,
                         "curr_status": curr_status,
                         "timestamp": datetime.now(timezone.utc).isoformat()
@@ -286,7 +286,6 @@ def status():
     return api_response({
         "last_updated": state["last_updated"],
         "error": state["error"],
-        "poll_interval": POLL_INTERVAL,
         "nodes_cached": len(state["nodes"]),
         "vms_cached": len(state["vms"])
     })

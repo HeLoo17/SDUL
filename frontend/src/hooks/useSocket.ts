@@ -21,7 +21,12 @@ const TIER_CHECK_DELAY = 3000;      //Tier 1 disconnect buffer time before switc
 
 type DataSource = "websocket" | "rest" | "influx_stale" | "unavailable";
 
-type SummaryData = unknown;
+interface SummaryData {
+    tier: number;
+    last_update: number;
+    nodes_reached: number;
+    vms_reached: number;
+}
 
 interface ApiResponse<T> {
     ok: boolean;
