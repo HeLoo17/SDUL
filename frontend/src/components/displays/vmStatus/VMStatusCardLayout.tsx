@@ -54,7 +54,7 @@ export default function VMStatusCardLayout({ vms }: { vms: VM[] }) {
 
     return (
         <div>
-            <div className="flex justify-between items-baseline pb-6">
+            <div className="flex justify-between items-start pb-6">
                 <div className="flex justify-end items-baseline">
                     {/* VMS FILTER BY STATUS */}
                     <div className="flex justify-between bg-primary-BACK rounded-lg p-1 gap-1">
@@ -92,7 +92,7 @@ export default function VMStatusCardLayout({ vms }: { vms: VM[] }) {
                         </div>
                     )}
 
-                    {activeTag === 'All' && (
+                    {tagOptions.length > 1 && activeTag === 'All' && (
                         <div ref={dropdownRef} className="relative inline-block w-[140px]">
                             {/* DROPDOWN TRIGGER BUTTON */}
                             <button

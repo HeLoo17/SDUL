@@ -1,6 +1,6 @@
 import NavItem from "./buttons/NavItem";
 import logo from "../assets/logo.svg";
-import simple_logo from "../../public/simple_logo.svg"
+import simple_logo from "../simple_logo.svg"
 import navi from "../assets/icons";
 import { useState } from "react";
 

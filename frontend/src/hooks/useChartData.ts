@@ -31,6 +31,7 @@ export interface ChartDataReturn {
     vmTypeHistory: any[];
 }
 
+
 export function useChartData(rawData: UseSocketReturn): ChartDataReturn {
     const [slices, setSlices] = useState<any[]>([]);
     const [resourceHistory, setResourceHistory] = useState<any[]>([]);
@@ -38,6 +39,7 @@ export function useChartData(rawData: UseSocketReturn): ChartDataReturn {
 
     const prevNodesRef = useRef<any[]>([]);
     const prevSignatureRef = useRef<string>("");
+    const knownTagsRef = useRef<Set<string>>(new Set());
 
     // IMPORTANT: stabilize nodes reference
     const nodes = rawData?.nodes ?? [];
@@ -87,12 +89,22 @@ export function useChartData(rawData: UseSocketReturn): ChartDataReturn {
 
         const vmTypeSnapshot = buildVMTagSnapshot(transformVMs(vms));
 
+        Object.keys(vmTypeSnapshot).forEach(tag =>
+            knownTagsRef.current.add(tag)
+        );
+
+        const completeSnapshot: Record<string, number> = {};
+
+        knownTagsRef.current.forEach(tag => {
+            completeSnapshot[tag] = vmTypeSnapshot[tag] ?? 0;
+        });
+
         setVmTypeHistory((prev) => {
             const next = [
                 ...prev,
                 {
                     time,
-                    ...vmTypeSnapshot,
+                    ...completeSnapshot,
                 },
             ];
             return next.slice(-VM_TAGS_CHART_MAX_SLICES);
