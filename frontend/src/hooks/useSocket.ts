@@ -40,12 +40,25 @@ function tierFromSource(source: DataSource): 1 | 2 | 3 | null {
     return null;
 }
 
+// Shape of UpstreamService
+export interface UpstreamService {
+    reachable:    boolean;
+    last_success: string | null;    // ISO string
+    last_attempt: string | null;    // ISO string
+    response_ms:  number | null;    // ms, rounded to 1 dp
+    error:        string | null;
+}
+
 // Shape of the /api/status response data field
 interface ApiStatusPayload {
     last_updated: string | null;
     error: string | null;
     nodes_cached: number;
     vms_cached: number;
+    upstream: {
+        proxmox: UpstreamService;
+        wazuh:   UpstreamService;
+    };
 }
 
 export interface SystemStatus {
@@ -55,6 +68,10 @@ export interface SystemStatus {
     nodesCached: number;
     vmsCached: number;
     dataSource: DataSource;
+    upstream: {                     
+        proxmox: UpstreamService;
+        wazuh:   UpstreamService;
+    };
 }
 
 interface HistoryRow {
@@ -385,6 +402,19 @@ export function useSocket(): UseSocketReturn {
         [nodeEvents, vmEvents]
     );
 
+    // DEFAULT DATA FOR UPSTREAM
+    const DEFAULT_UPSTREAM_SERVICE: UpstreamService = {
+        reachable:    false,
+        last_success: null,
+        last_attempt: null,
+        response_ms:  null,
+        error:        null,
+    };
+
+    const DEFAULT_UPSTREAM = {
+        proxmox: DEFAULT_UPSTREAM_SERVICE,
+        wazuh:   DEFAULT_UPSTREAM_SERVICE,
+    };
 
     const systemStatus = useMemo<SystemStatus>(() => ({
         tier: tierFromSource(dataSource),
@@ -395,6 +425,7 @@ export function useSocket(): UseSocketReturn {
         nodesCached: apiStatusPayload?.nodes_cached ?? 0,
         vmsCached: apiStatusPayload?.vms_cached ?? 0,
         dataSource,
+        upstream: apiStatusPayload?.upstream ?? DEFAULT_UPSTREAM
     }), [dataSource, collectorError, apiStatusPayload]);
 
 

@@ -183,10 +183,21 @@ def collector_loop():
     prev_vm_states: dict = {}
 
     while True:
+        t_start = time.monotonic()
         try:
             data = fetch_all(client)
+            response_ms = (time.monotonic() - t_start) * 1000
+
             nodes = data["nodes"]
             vms = data["vms"]
+
+            # Record Proxmox responses attempt
+            cache.set_upstream_result(
+                service="proxmox",
+                reachable=True,
+                response_ms=response_ms,
+                error=None,
+            )
 
             # Detect node state change (Primary)
             curr_node_states = _node_states(nodes)
@@ -237,6 +248,16 @@ def collector_loop():
                 print(f"[influx] ERROR - failed to write into InfluxDB: {exc}")
         
         except RuntimeError as exc:
+            response_ms = (time.monotonic() - t_start) * 1000  
+
+            # Record failed Proxmox fetch attempt
+            cache.set_upstream_result(
+                service="proxmox",
+                reachable=False,
+                response_ms=response_ms,
+                error=str(exc),
+            )
+
             cache.set_error(str(exc))
             print(f"[collector] ERROR - {exc}")
             socketio.emit("websocket_collector_error", {
@@ -287,7 +308,8 @@ def status():
         "last_updated": state["last_updated"],
         "error": state["error"],
         "nodes_cached": len(state["nodes"]),
-        "vms_cached": len(state["vms"])
+        "vms_cached": len(state["vms"]),
+        "upstream": state["upstream"]
     })
 
 

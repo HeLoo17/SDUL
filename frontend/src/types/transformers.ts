@@ -42,7 +42,7 @@ export interface StorageItem {
 export function transformNode(raw: RawNodeAPI, index: number): Node {
     const cpuUsage = raw.maxcpu  && raw.cpu != null ? Math.round(raw.cpu * 100) : 0;
     const memoryUsage = raw.maxmem  && raw.mem != null ? Math.round((raw.mem / raw.maxmem) * 100) : 0;
-    const diskUsage = raw.maxdisk && raw.disk != null ? Math.round((raw.disk / raw.maxdisk) * 100) : 0;
+    // const diskUsage = raw.maxdisk && raw.disk != null ? Math.round((raw.disk / raw.maxdisk) * 100) : 0;
 
     const storageList = raw.storages || [];
     const realDiskData = storageList.filter(storage => storage.shared !== 1 && storage.type !== 'rbd').reduce((sum, cur) => { return { totalStorage: sum.totalStorage + cur.total, usedStorage: sum.usedStorage + cur.used}; }, {totalStorage: 0, usedStorage: 0});
