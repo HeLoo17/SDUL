@@ -4,7 +4,9 @@ import cpuUsage from './cpuUsage.svg?react';
 import memoryUsage from './memoryUsage.svg?react';
 import vmOnline from './vmsOnline.svg?react';
 import vmOffline from './vmsOffline.svg?react';
-import vmTotal from './vmsTotal.svg?react'
+import vmTotal from './vmsTotal.svg?react';
+import peakMemory from './peakMemoryUsage.svg?react';
+import peakCpu from './peakCpuUsage.svg?react';
 
 const deco = {
     totalNodes,
@@ -13,7 +15,9 @@ const deco = {
     memoryUsage,
     vmOnline,
     vmOffline,
-    vmTotal
+    vmTotal,
+    peakMemory,
+    peakCpu
 };
 
 export default deco;
