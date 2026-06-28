@@ -45,7 +45,7 @@ export function transformNode(raw: RawNodeAPI, index: number): Node {
     const diskUsage = raw.maxdisk && raw.disk != null ? Math.round((raw.disk / raw.maxdisk) * 100) : 0;
 
     const storageList = raw.storages || [];
-    const realDiskData = storageList.reduce((sum, cur) => { return { totalStorage: sum.totalStorage + cur.total, usedStorage: sum.usedStorage + cur.used}; }, {totalStorage: 0, usedStorage: 0});
+    const realDiskData = storageList.filter(storage => storage.shared !== 1 && storage.type !== 'rbd').reduce((sum, cur) => { return { totalStorage: sum.totalStorage + cur.total, usedStorage: sum.usedStorage + cur.used}; }, {totalStorage: 0, usedStorage: 0});
     const realDiskUsage = realDiskData.totalStorage > 0 ? (realDiskData.usedStorage / realDiskData.totalStorage) * 100 : 0;
 
     return {
