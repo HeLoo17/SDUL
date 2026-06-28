@@ -359,7 +359,35 @@ def history_vm(vmid):
         return api_error(f"History data query failed: {exc}")
     
 
-# Retrieve 
+# Retrieve historical data of cluster
+@app.route("/api/history/cluster")
+@require_api_key
+def history_cluster():
+    hours = request.args.get("hours", 24, type=int)
+    try:
+        rows = influx.query_cluster_history(hours=hours)
+        
+        # Aggregate per timestamp across all nodes
+        from collections import defaultdict
+        buckets = defaultdict(lambda: {"cpu_sum": 0, "cpu_count": 0,
+                                        "mem_used": 0, "mem_total": 0})
+        for row in rows:
+            t = row["time"]
+            buckets[t]["cpu_sum"]   += row.get("cpu_used", 0)
+            buckets[t]["cpu_count"] += 1
+            buckets[t]["mem_used"]  += row.get("mem_used", 0)
+            buckets[t]["mem_total"] += row.get("mem_total", 0)
+        
+        chart_points = []
+        for t in sorted(buckets):
+            b = buckets[t]
+            cpu_pct = round(b["cpu_sum"] / b["cpu_count"] * 100, 1) if b["cpu_count"] else 0
+            mem_pct = round(b["mem_used"] / b["mem_total"] * 100, 2) if b["mem_total"] else 0
+            chart_points.append({"time": t, "cpu": cpu_pct, "memory": mem_pct})
+        
+        return api_response(chart_points)
+    except Exception as exc:
+        return api_error(f"History query failed: {exc}")
 
 
 if __name__ == "__main__":
