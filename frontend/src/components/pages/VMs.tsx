@@ -1,15 +1,15 @@
 import deco from "../../assets/deco";
 import VM_KPICards from "../displays/VM_KPICards";
 import { transformVMs } from '../../types';
-import VmDetailedTable from "../displays/vmDetailTable/VmDetailedTable";
 import VMStausCardLayout from "../displays/vmStatus/VMStatusCardLayout";
 import { useOutletContext } from "react-router-dom";
 import type { UseSocketReturn } from "../../hooks/useSocket";
 import navi from "../../assets/icons";
+import VMTagsGraph from "../displays/VMTagsGraph";
 
 
 export default function VMs() {
-    const { rawData } = useOutletContext<{ rawData: UseSocketReturn }>();
+    const { rawData, vmTypeHistory } = useOutletContext<{ rawData: UseSocketReturn, vmTypeHistory: any[] }>();
     const { vms: rawVMs  } = rawData;
 
     const vms = transformVMs(rawVMs);
@@ -32,9 +32,8 @@ export default function VMs() {
             <div className="w-full h-fit">
                 <VMStausCardLayout vms={vms} />
             </div>
-            {/* VM DETAILS TABLE */}
             <div>
-                <VmDetailedTable vms={vms} />
+                <VMTagsGraph data={vmTypeHistory}/>
             </div>
         </div>
     )

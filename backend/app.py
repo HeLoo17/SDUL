@@ -183,10 +183,21 @@ def collector_loop():
     prev_vm_states: dict = {}
 
     while True:
+        t_start = time.monotonic()
         try:
             data = fetch_all(client)
+            response_ms = (time.monotonic() - t_start) * 1000
+
             nodes = data["nodes"]
             vms = data["vms"]
+
+            # Record Proxmox responses attempt
+            cache.set_upstream_result(
+                service="proxmox",
+                reachable=True,
+                response_ms=response_ms,
+                error=None,
+            )
 
             # Detect node state change (Primary)
             curr_node_states = _node_states(nodes)
@@ -206,8 +217,8 @@ def collector_loop():
             for vmid, curr_status in curr_vm_states.items():
                 prev_status = prev_vm_states.get(vmid)
                 if prev_status is not None and prev_status != curr_status:
-                    socketio.emit("node_status_change", {
-                        "node": vmid,
+                    socketio.emit("vm_status_change", {
+                        "vm": vmid,
                         "prev_status": prev_status,
                         "curr_status": curr_status,
                         "timestamp": datetime.now(timezone.utc).isoformat()
@@ -237,6 +248,16 @@ def collector_loop():
                 print(f"[influx] ERROR - failed to write into InfluxDB: {exc}")
         
         except RuntimeError as exc:
+            response_ms = (time.monotonic() - t_start) * 1000  
+
+            # Record failed Proxmox fetch attempt
+            cache.set_upstream_result(
+                service="proxmox",
+                reachable=False,
+                response_ms=response_ms,
+                error=str(exc),
+            )
+
             cache.set_error(str(exc))
             print(f"[collector] ERROR - {exc}")
             socketio.emit("websocket_collector_error", {
@@ -286,9 +307,9 @@ def status():
     return api_response({
         "last_updated": state["last_updated"],
         "error": state["error"],
-        "poll_interval": POLL_INTERVAL,
         "nodes_cached": len(state["nodes"]),
-        "vms_cached": len(state["vms"])
+        "vms_cached": len(state["vms"]),
+        "upstream": state["upstream"]
     })
 
 
@@ -366,9 +387,29 @@ def history_vm(vmid):
 def history_cluster():
     hours = request.args.get("hours", 24, type=int)
     try:
-        return api_response(influx.query_cluster_history(hours=hours))
+        rows = influx.query_cluster_history(hours=hours)
+        
+        # Aggregate per timestamp across all nodes
+        from collections import defaultdict
+        buckets = defaultdict(lambda: {"cpu_sum": 0, "cpu_count": 0,
+                                        "mem_used": 0, "mem_total": 0})
+        for row in rows:
+            t = row["time"]
+            buckets[t]["cpu_sum"]   += row.get("cpu_used", 0)
+            buckets[t]["cpu_count"] += 1
+            buckets[t]["mem_used"]  += row.get("mem_used", 0)
+            buckets[t]["mem_total"] += row.get("mem_total", 0)
+        
+        chart_points = []
+        for t in sorted(buckets):
+            b = buckets[t]
+            cpu_pct = round(b["cpu_sum"] / b["cpu_count"] * 100, 1) if b["cpu_count"] else 0
+            mem_pct = round(b["mem_used"] / b["mem_total"] * 100, 2) if b["mem_total"] else 0
+            chart_points.append({"time": t, "cpu": cpu_pct, "memory": mem_pct})
+        
+        return api_response(chart_points)
     except Exception as exc:
-        return api_error(f"InfluxDB query failed: {exc}")
+        return api_error(f"History query failed: {exc}")
 
 
 if __name__ == "__main__":

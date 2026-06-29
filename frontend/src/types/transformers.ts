@@ -22,13 +22,31 @@ export interface RawNodeAPI {
     netout?:   number;
     iowait?: number;
     ip_address?: string | null;
+    storages?: StorageItem[];
+}
+
+export interface StorageItem {
+    active: number;
+    avail: number;
+    content: string;
+    enabled: number;
+    shared: number;
+    storage: string;
+    total: number;
+    type: string;
+    used: number
+    used_fraction: number;
 }
 
 // Normalized for a node
 export function transformNode(raw: RawNodeAPI, index: number): Node {
     const cpuUsage = raw.maxcpu  && raw.cpu != null ? Math.round(raw.cpu * 100) : 0;
     const memoryUsage = raw.maxmem  && raw.mem != null ? Math.round((raw.mem / raw.maxmem) * 100) : 0;
-    const diskUsage = raw.maxdisk && raw.disk != null ? Math.round((raw.disk / raw.maxdisk) * 100) : 0;
+    // const diskUsage = raw.maxdisk && raw.disk != null ? Math.round((raw.disk / raw.maxdisk) * 100) : 0;
+
+    const storageList = raw.storages || [];
+    const realDiskData = storageList.filter(storage => storage.shared !== 1 && storage.type !== 'rbd').reduce((sum, cur) => { return { totalStorage: sum.totalStorage + cur.total, usedStorage: sum.usedStorage + cur.used}; }, {totalStorage: 0, usedStorage: 0});
+    const realDiskUsage = realDiskData.totalStorage > 0 ? (realDiskData.usedStorage / realDiskData.totalStorage) * 100 : 0;
 
     return {
         id: index + 1,
@@ -36,7 +54,7 @@ export function transformNode(raw: RawNodeAPI, index: number): Node {
         status: raw.status === "online",
         cpuUsage,
         memoryUsage,
-        diskUsage,
+        diskUsage: realDiskUsage,
         ipAddress: raw.ip_address ?? "unknown",
     };
 }

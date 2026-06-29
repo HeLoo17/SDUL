@@ -10,6 +10,10 @@ import offlineIcon from "./disconnected_node.svg?react";
 import network from "./network.svg?react";
 import infra from "./infra.svg?react";
 import template from "./template.svg?react";
+import errorVm from "./errorVm.svg?react";
+import closeIcon from "./close.svg?react";
+import cardView from "./cardView.svg?react";
+import tableView from "./tableView.svg?react";
 
 const navi = {
     dashboard,
@@ -23,7 +27,11 @@ const navi = {
     offlineIcon,
     network,
     infra,
-    template
+    template,
+    errorVm,
+    closeIcon,
+    cardView,
+    tableView
 };
 
 export default navi;

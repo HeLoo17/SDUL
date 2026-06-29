@@ -1,11 +1,12 @@
 import { Pie, PieChart, ResponsiveContainer } from "recharts";
 
 import navi from "../../../assets/icons";
+import type { vmStatus } from "../../../types";
 
 interface VMREsourcesProps {
     tags?: string[];
     template: boolean;
-    status: boolean,
+    status: vmStatus,
     cpu: number;
     memory: number;
     disk: number;
@@ -41,9 +42,10 @@ export default function VWMResourcesRing({ tags, template, status, cpu, memory, 
     const INNER = 3*size/8;
     const OUTER = size/2;
 
-    const data = status ? { cpu: clamp(cpu), memory: clamp(memory), disk: clamp(disk) } : { cpu: 0, memory: 0, disk: 0 }
+    const data = status ? { cpu: clamp(cpu), memory: clamp(memory), disk: clamp(disk) } : { cpu: 0, memory: 0, disk: 0 };
 
-    const CenterIcon =  template ? navi.template : status ? IconMapping(tags) : navi.offlineIcon;
+    const CenterIcon =  template ? navi.template : (status === "running" || status === "paused") ? IconMapping(tags) : (status === "error") ? navi.errorVm : navi.offlineIcon;
+    const icon_color = (status === "error") ? 'text-[#d63636]' : 'text-t1';
 
     return (
         <div className="relative w-full" style={{ height: size }}>
@@ -123,7 +125,7 @@ export default function VWMResourcesRing({ tags, template, status, cpu, memory, 
             </ResponsiveContainer>
 
             <div className="absolute inset-0 flex items-center justify-center">
-                <CenterIcon className="h-6 w-6 text-t3" />
+                <CenterIcon className={`h-6 w-6 ${icon_color}`} />
             </div>
         </div>
     );
