@@ -65,8 +65,10 @@ INFLUXDB_ORG = os.getenv("INFLUXDB_ORG", "")
 INFLUXDB_BUCKET = os.getenv("INFLUXDB_BUCKET", "proxmox")
 
 WAZUH_HOST = os.getenv("WAZUH_HOST", "")
-WAZUH_USERNAME = os.getenv("WAZUH_API_USERNAME", "")
-WAZUH_PASSWORD = os.getenv("WAZUH_API_KEY", "")
+WAZUH_API_USER = os.getenv("WAZUH_API_USERNAME", "")
+WAZUH_API_KEY = os.getenv("WAZUH_API_KEY", "")
+# WAZUH_USERNAME = os.getenv("WAZUH_INDEXER_USERNAME", "")
+# WAZUH_PASSWORD = os.getenv("WAZUH_INDEXER_PASSWORD", "")
 
 DASHBOARD_API_KEY = os.getenv("DASHBOARD_API_KEY", "")
 
@@ -87,8 +89,8 @@ influx = InfluxController(INFLUXDB_URL, INFLUXDB_TOKEN, INFLUXDB_ORG, INFLUXDB_B
 
 # WAZUH credentials validation
 wazuh: WazuhClient | None = None
-if WAZUH_HOST and WAZUH_USERNAME and WAZUH_PASSWORD:
-    wazuh = WazuhClient(WAZUH_HOST, WAZUH_USERNAME, WAZUH_PASSWORD, verify_ssl=False)
+if WAZUH_HOST and WAZUH_API_USER and WAZUH_API_KEY:
+    wazuh = WazuhClient(WAZUH_HOST, WAZUH_API_USER, WAZUH_API_KEY, verify_ssl=False)
     print("[wazuh] Client initialised")
 else:
     print("[wazuh] WARN — WAZUH_HOST / credentials not set, Wazuh endpoints disabled")
@@ -468,6 +470,7 @@ def get_logs():
         tag = request.args.get("tag", None, )  # e.g. wazuh-analysisd
         return api_response(fetch_logs(wazuh, limit=limit, level=level, tag=tag))
     except RuntimeError as exc:
+        print(traceback.format_exc())
         return api_error(str(exc))
 
 

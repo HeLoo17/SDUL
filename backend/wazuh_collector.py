@@ -87,11 +87,19 @@ def fetch_logs(client: WazuhClient, limit: int = 100, level: str | None = None, 
     }
     if level:
         params["level"] = level
-    if tag:
+    if tag and tag != "all":
         params["tag"] = tag
 
     raw = client.server_get("/manager/logs", params=params)
-    items = raw.get("data", {}).get("affected_items", [])
+    print("RAW LOG RESPONSE:", raw)
+
+    data = raw.get("data", {})
+
+    items = (
+            data.get("affected_items")
+            or data.get("items")
+            or []
+    )
 
     logs = []
     for item in items:
