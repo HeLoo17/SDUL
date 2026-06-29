@@ -46,6 +46,8 @@ from proxmox_client import ProxmoxClient
 from collector import fetch_all
 from cache import DataCache
 from influx_controller import InfluxController
+from wazuh_client import WazuhClient
+from wazuh_collector import fetch_alerts, fetch_logs
 
 load_dotenv()
 
@@ -61,6 +63,10 @@ INFLUXDB_URL = os.getenv("INFLUXDB_URL", "http://localhost:8086")
 INFLUXDB_TOKEN = os.getenv("INFLUXDB_TOKEN", "")
 INFLUXDB_ORG = os.getenv("INFLUXDB_ORG", "")
 INFLUXDB_BUCKET = os.getenv("INFLUXDB_BUCKET", "proxmox")
+
+WAZUH_HOST = os.getenv("WAZUH_HOST", "")
+WAZUH_USERNAME = os.getenv("WAZUH_API_USERNAME", "")
+WAZUH_PASSWORD = os.getenv("WAZUH_API_KEY", "")
 
 DASHBOARD_API_KEY = os.getenv("DASHBOARD_API_KEY", "")
 
@@ -79,6 +85,13 @@ cache = DataCache()
 client = ProxmoxClient(PVE_HOST, PVE_API_TOKEN, PVE_API_KEY, VERIFY_SSL)
 influx = InfluxController(INFLUXDB_URL, INFLUXDB_TOKEN, INFLUXDB_ORG, INFLUXDB_BUCKET)
 
+# WAZUH credentials validation
+wazuh: WazuhClient | None = None
+if WAZUH_HOST and WAZUH_USERNAME and WAZUH_PASSWORD:
+    wazuh = WazuhClient(WAZUH_HOST, WAZUH_USERNAME, WAZUH_PASSWORD, verify_ssl=False)
+    print("[wazuh] Client initialised")
+else:
+    print("[wazuh] WARN — WAZUH_HOST / credentials not set, Wazuh endpoints disabled")
 
 # FLASK APP
 app = Flask(__name__)
@@ -163,6 +176,7 @@ def on_connect(auth):
         "timestamp": datetime.now(timezone.utc).isoformat()
     })
 
+
 @socketio.on("disconnect")
 def on_disconnect():
     print("[WebSocket] Client disconnected")
@@ -177,7 +191,8 @@ def _vm_states(vms: list[dict]) -> dict:
     return {v.get("vmid"): v.get("status") for v in vms}
 
 
-# Collector that loops every POLL_INTERVAL, (Push live data over WebSocket (Tier 1), cache for Tier 2 to read, save cache into InfluxDB as history (Tier 3)
+# Collector that loops every POLL_INTERVAL, (Push live data over WebSocket (Tier 1), cache for Tier 2 to read,
+# save cache into InfluxDB as history (Tier 3)
 def collector_loop():
     prev_node_states: dict = {}
     prev_vm_states: dict = {}
@@ -243,7 +258,7 @@ def collector_loop():
             # Write to InfluxDB
             try:
                 influx.write_all(data["nodes"], data["vms"])
-                print (f"[influx] OK - {len(data['nodes'])} nodes and {len(data['vms'])} VMs written to InfluxDB")
+                print(f"[influx] OK - {len(data['nodes'])} nodes and {len(data['vms'])} VMs written to InfluxDB")
             except Exception as exc:
                 print(f"[influx] ERROR - failed to write into InfluxDB: {exc}")
         
@@ -391,13 +406,12 @@ def history_cluster():
         
         # Aggregate per timestamp across all nodes
         from collections import defaultdict
-        buckets = defaultdict(lambda: {"cpu_sum": 0, "cpu_count": 0,
-                                        "mem_used": 0, "mem_total": 0})
+        buckets = defaultdict(lambda: {"cpu_sum": 0, "cpu_count": 0, "mem_used": 0, "mem_total": 0})
         for row in rows:
             t = row["time"]
-            buckets[t]["cpu_sum"]   += row.get("cpu_used", 0)
+            buckets[t]["cpu_sum"] += row.get("cpu_used", 0)
             buckets[t]["cpu_count"] += 1
-            buckets[t]["mem_used"]  += row.get("mem_used", 0)
+            buckets[t]["mem_used"] += row.get("mem_used", 0)
             buckets[t]["mem_total"] += row.get("mem_total", 0)
         
         chart_points = []
@@ -410,6 +424,38 @@ def history_cluster():
         return api_response(chart_points)
     except Exception as exc:
         return api_error(f"History query failed: {exc}")
+
+
+# WAZUH API paths
+# Log Data APIs
+# --- /api/alerts --- Security alerts from all agents (Wazuh Indexer)
+@app.route("/api/alerts")
+@require_api_key
+def get_alerts():
+    if wazuh is None:
+        return api_error("Wazuh not configured", 503)
+    try:
+        limit = request.args.get("limit", 50, type=int)
+        min_level = request.args.get("min_level", 3, type=int)
+        hours = request.args.get("hours", 24, type=int)
+        return api_response(fetch_alerts(wazuh, limit=limit, min_level=min_level, hours=hours))
+    except RuntimeError as exc:
+        return api_error(str(exc))
+
+
+# --- /api/logs --- Manager operational logs (Wazuh Server API)
+@app.route("/api/logs")
+@require_api_key
+def get_logs():
+    if wazuh is None:
+        return api_error("Wazuh not configured", 503)
+    try:
+        limit = request.args.get("limit", 100, type=int)
+        level = request.args.get("level", None, )  # info | warning | error | debug
+        tag = request.args.get("tag", None, )  # e.g. wazuh-analysisd
+        return api_response(fetch_logs(wazuh, limit=limit, level=level, tag=tag))
+    except RuntimeError as exc:
+        return api_error(str(exc))
 
 
 if __name__ == "__main__":
