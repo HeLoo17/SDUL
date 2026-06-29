@@ -18,6 +18,14 @@ function setTitleDescription(type: 'proxmox' | 'wazuh'): string[] {
 }
 
 
+function formatMs(ms: number | null): string {
+    if (ms === null) return "-";
+
+    if (ms < 1000) return `${ms} ms`;
+
+    return `${(ms / 1000).toFixed(2)} s`;
+}
+
 
 export default function UpstreamConnectionStatusCard( { upstreamStatus, service } : { upstreamStatus: UpstreamService, service: 'proxmox' | 'wazuh' }) {
     const formatedLastSync = formatDateTime(upstreamStatus.last_success);
@@ -46,7 +54,7 @@ export default function UpstreamConnectionStatusCard( { upstreamStatus, service 
                 </div>
                 <div className="w-full flex justify-between border-b-[1px] border-t2/10 py-2">
                     <span className="font-inter text-t1 font-normal text-xs"> Response Time </span>
-                    <span className="font-mono text-t3 font-normal text-xs"> {upstreamStatus.response_ms} </span>
+                    <span className="font-mono text-t3 font-normal text-xs"> {formatMs(upstreamStatus.response_ms)} </span>
                 </div>
                 <div className="w-full flex justify-between border-b-[1px] border-t2/10 py-2">
                     <span className="font-inter text-t1 font-normal text-xs"> Error </span>
