@@ -55,6 +55,7 @@ interface ApiStatusPayload {
     error: string | null;
     nodes_cached: number;
     vms_cached: number;
+    frontendResponseMs: number | null;
     upstream: {
         proxmox: UpstreamService;
         wazuh:   UpstreamService;
@@ -68,6 +69,7 @@ export interface SystemStatus {
     nodesCached: number;
     vmsCached: number;
     dataSource: DataSource;
+    frontendResponseMs: number | null;
     upstream: {                     
         proxmox: UpstreamService;
         wazuh:   UpstreamService;
@@ -208,9 +210,11 @@ export function useSocket(): UseSocketReturn {
 
     // System Status Polling
     const fetchApiStatus = useCallback(async () => {
+        const t0 = performance.now();
         try {
             const data = await apiFetch<ApiStatusPayload>("/api/status");
-            setApiStatusPayload(data);
+            const ms = Math.round(performance.now() - t0);
+            setApiStatusPayload({...data, frontendResponseMs: ms});
         } catch {
             // On failure keep the last known payload so the UI doesn't reset to null
         }
@@ -425,6 +429,7 @@ export function useSocket(): UseSocketReturn {
         nodesCached: apiStatusPayload?.nodes_cached ?? 0,
         vmsCached: apiStatusPayload?.vms_cached ?? 0,
         dataSource,
+        frontendResponseMs: apiStatusPayload?.frontendResponseMs ?? null,
         upstream: apiStatusPayload?.upstream ?? DEFAULT_UPSTREAM
     }), [dataSource, collectorError, apiStatusPayload]);
 

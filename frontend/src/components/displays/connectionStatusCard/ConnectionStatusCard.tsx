@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from "react";
 import type { SystemStatus } from "../../../hooks/useSocket";
 import ConnectionStatusTag from "./ConnectionStatusTag";
 
@@ -30,21 +29,6 @@ function formatMs(ms: number | null): string {
 export default function ConnectionStatusCard( { systemStatus } : { systemStatus: SystemStatus }) {
     const formatedLastSync = formatDateTime(systemStatus.lastUpdated);
     const [connection_service, description] = setTitleDescription(systemStatus.tier);
-    const prevSyncRef = useRef<number | null>(null);
-    const [responseTime, setResponseTime] = useState<number | null>(null);
-
-    useEffect(() => {
-        if (!systemStatus.lastUpdated) return;
-
-        const current = new Date(systemStatus.lastUpdated).getTime();
-
-        if (prevSyncRef.current !== null) {
-            const diff = current - prevSyncRef.current;
-            setResponseTime(diff);
-        }
-
-        prevSyncRef.current = current;
-    }, [systemStatus.lastUpdated]);
 
     return (
         <div className="flex flex-col w-full h-fit gap-8 p-8 bg-primary-BACK rounded-lg">
@@ -64,7 +48,7 @@ export default function ConnectionStatusCard( { systemStatus } : { systemStatus:
                 </div>
                 <div className="w-full flex justify-between border-b-[1px] border-t2/10 py-2">
                     <span className="font-inter text-t1 font-normal text-xs"> Response Time </span>
-                    <span className="font-mono text-t3 font-normal text-xs"> {formatMs(responseTime)} </span>
+                    <span className="font-mono text-t3 font-normal text-xs"> {formatMs(systemStatus.frontendResponseMs)} </span>
                 </div>
                 <div className="w-full flex justify-between border-b-[1px] border-t2/10 py-2">
                     <span className="font-inter text-t1 font-normal text-xs"> Nodes Reachable </span>

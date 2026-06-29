@@ -4,6 +4,14 @@ import Topbar from "./Topbar";
 import { useSocket, type UseSocketReturn } from "../hooks/useSocket";
 import { useChartData } from "../hooks/useChartData";
 
+const DEFAULT_UPSTREAM_SERVICE = {
+    reachable:    false,
+    last_success: null,
+    last_attempt: null,
+    response_ms:  null,
+    error:        null,
+};
+
 const EMPTY_SOCKET_DATA: UseSocketReturn = {
     nodes: [],
     vms: [],
@@ -14,6 +22,19 @@ const EMPTY_SOCKET_DATA: UseSocketReturn = {
     vmEvents: [],
     allEvents: [],
     collectorError: null,
+    systemStatus: {
+        tier:        null,
+        lastUpdated: null,
+        error:       null,
+        nodesCached: 0,
+        vmsCached:   0,
+        dataSource:  'unavailable',
+        frontendResponseMs: 0,
+        upstream: {
+            proxmox: DEFAULT_UPSTREAM_SERVICE,
+            wazuh:   DEFAULT_UPSTREAM_SERVICE,
+        },
+    },
 };
 
 export default function DashboardLayout () {
@@ -32,7 +53,7 @@ export default function DashboardLayout () {
     const currentTitle = titles[location.pathname] || "Dashboard";
     const rawData = useSocket() ?? EMPTY_SOCKET_DATA;
 
-    const { slices, resourceHistory, vmTypeHistory } = useChartData(rawData) ?? {};
+    const { slices, resourceHistory, vmTypeHistory, eventLog, clearEventLog } = useChartData(rawData) ?? {};
 
     return (
         <div className="h-screen w-full flex overflow-hidden">
@@ -44,7 +65,7 @@ export default function DashboardLayout () {
                 </div>
 
                 <main className="h-full w-full p-4 bg-primary flex flex-col overflow-y-auto scrollbar-track-transparent scrollbar-thin scrollbar-thumb-[#262A34]">
-                    <Outlet context={{rawData, slices, resourceHistory, vmTypeHistory}}/>
+                    <Outlet context={{rawData, slices, resourceHistory, vmTypeHistory, eventLog, clearEventLog}}/>
                 </main>
                 <div className="h-4 bg-primary" />
             </div>

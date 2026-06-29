@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { type UseSocketReturn } from "./useSocket";
 import { sumThroughput, transformVMs, type VM } from "../types";
 
 const MAX_SLICES = 30;
 const VM_TAGS_CHART_MAX_SLICES = 300;
+const MAX_EVENTS = 50;
 
 function nowLabel(): string {
     return new Date().toLocaleTimeString('en-GB', {
@@ -25,13 +26,57 @@ function memoryUsage(nodes: any[]): number {
     return (onlineNodes.reduce((sum, n) => sum + (n.mem ?? 0), 0) / totalMemory) * 100;
 }
 
+// Event Log 
+export type EventKind = "success" | "warning" | "error" | "info" | "tier";
+ 
+export interface SystemEvent {
+    id: number;
+    kind: EventKind;
+    title: string;
+    detail?: string;
+    timestamp: Date;
+}
+ 
+let _eventId = 0;
+ 
+function makeEvent(kind: EventKind, title: string, detail?: string): SystemEvent {
+    return { id: ++_eventId, kind, title, detail, timestamp: new Date() };
+}
+
+// VM Tags Graph
+
+
+export type VMTypeData = {
+  time: string;
+  [vmType: string]: number | string;
+};
+
+function buildVMTagSnapshot(vms: VM[]): Record<string, number> {
+    const result: Record<string, number> = {};
+
+    for (const vm of vms) {
+        const tag =
+            vm.tags && vm.tags.length > 0
+                ? vm.tags[0]
+                : "untagged";
+        result[tag] = (result[tag] || 0) + 1;
+    }
+    return result;
+}
+
+
+
+// Return data shape
 export interface ChartDataReturn {
     slices: any[];
     resourceHistory: any[];
     vmTypeHistory: any[];
+    eventLog: SystemEvent[];
+    clearEventLog: () => void;
 }
 
 
+// Hook
 export function useChartData(rawData: UseSocketReturn): ChartDataReturn {
     const [slices, setSlices] = useState<any[]>([]);
     const [resourceHistory, setResourceHistory] = useState<any[]>([]);
@@ -87,7 +132,7 @@ export function useChartData(rawData: UseSocketReturn): ChartDataReturn {
 
         prevNodesRef.current = nodes;
 
-        const vmTypeSnapshot = buildVMTagSnapshot(transformVMs(vms));
+        const vmTypeSnapshot = buildVMTagSnapshot(transformVMs(vms).filter(vm => vm.status === 'running'));
 
         Object.keys(vmTypeSnapshot).forEach(tag =>
             knownTagsRef.current.add(tag)
@@ -111,25 +156,99 @@ export function useChartData(rawData: UseSocketReturn): ChartDataReturn {
         });
     }, [rawData]);
 
-    return { slices, resourceHistory, vmTypeHistory };
-}
+    // Event Log State
+    const [eventLog, setEventLog] = useState<SystemEvent[]>([]);
+ 
+    const pushEvent = useCallback((ev: SystemEvent) => {
+        setEventLog(prev => {
+            const next = [ev, ...prev];
+            return next.length > MAX_EVENTS ? next.slice(0, MAX_EVENTS) : next;
+        });
+    }, []);
+ 
+    const clearEventLog = useCallback(() => {
+        setEventLog([makeEvent("info", "Log cleared", "Manual clear by user")]);
+    }, []);
+ 
+    // Seed once
+    const seededRef = useRef(false);
+    useEffect(() => {
+        if (seededRef.current) return;
+        seededRef.current = true;
+        pushEvent(makeEvent("info", "Dashboard initialised", "Connecting to data sources…"));
+    }, [pushEvent]);
+ 
+    // Tier / data-source transitions
+    const prevTierRef = useRef<number | null | undefined>(undefined);
+    const { dataSource } = rawData;
+ 
+    useEffect(() => {
+        const tier =
+            dataSource === "websocket" ? 1 :
+            dataSource === "rest" ? 2 :
+            dataSource === "influx_stale" ? 3 : null;
+ 
+        if (prevTierRef.current === undefined) {
+            prevTierRef.current = tier;
+            if (tier === 1) pushEvent(makeEvent("success", "WebSocket connected", "Tier 1 live push active"));
+            else if (tier === 2) pushEvent(makeEvent("warning", "REST polling active", "Tier 2 fallback — WebSocket unavailable"));
+            else if (tier === 3) pushEvent(makeEvent("tier", "InfluxDB stale data", "Tier 3 fallback — REST also unavailable"));
+            else pushEvent(makeEvent("error", "No data source available","All tiers unreachable"));
+            return;
+        }
+        if (tier === prevTierRef.current) return;
+ 
+        if (tier === 1) pushEvent(makeEvent("success", "WebSocket reconnected", "Switched back to Tier 1 live push"));
+        else if (tier === 2) pushEvent(makeEvent("warning", "Switched to REST polling", "Tier 2 fallback — WebSocket lost"));
+        else if (tier === 3) pushEvent(makeEvent("tier", "Switched to InfluxDB stale", "Tier 3 — REST also unreachable"));
+        else pushEvent(makeEvent("error", "Connection lost", "All data sources unreachable"));
+ 
+        prevTierRef.current = tier;
+    }, [dataSource, pushEvent]);
+ 
+    // Collector errors
+    const { collectorError } = rawData;
+    const prevErrorRef = useRef<string | null>(null);
+ 
+    useEffect(() => {
+        if (collectorError && collectorError !== prevErrorRef.current)
+            pushEvent(makeEvent("error",   "Collector error",    collectorError));
+        if (!collectorError && prevErrorRef.current)
+            pushEvent(makeEvent("success", "Collector recovered","No active errors reported"));
+        prevErrorRef.current = collectorError;
+    }, [collectorError, pushEvent]);
+ 
+    // Node / VM socket events
+    const { allEvents } = rawData;
+    const prevSocketCountRef = useRef(0);
+ 
+    useEffect(() => {
+        if (allEvents.length <= prevSocketCountRef.current) return;
+        const newEvs = allEvents.slice(0, allEvents.length - prevSocketCountRef.current);
+        prevSocketCountRef.current = allEvents.length;
+ 
+        newEvs.forEach(ev => {
+            const raw = ev as Record<string, unknown>;
+            if ("node" in raw) {
+                const node = String(raw.node ?? "unknown");
+                const curr = String(raw.curr_status ?? "?");
+                const prev = String(raw.prev_status ?? "?");
+                pushEvent(makeEvent(
+                    curr === "online" ? "success" : "warning",
+                    `Node ${node} → ${curr}`,
+                    `Was ${prev}`,
+                ));
+            } else if ("vm" in raw) {
+                const vm   = String(raw.vm ?? "unknown");
+                const curr = String(raw.curr_status ?? "?");
+                const prev = String(raw.prev_status ?? "?");
+                const kind: EventKind =
+                    curr === "running" ? "success" :
+                    curr === "error"   ? "error"   : "warning";
+                pushEvent(makeEvent(kind, `VM ${vm} → ${curr}`, `Was ${prev}`));
+            }
+        });
+    }, [allEvents, pushEvent]);
 
-export type VMTypeData = {
-  time: string;
-  [vmType: string]: number | string;
-};
-
-function buildVMTagSnapshot(vms: VM[]): Record<string, number> {
-    const result: Record<string, number> = {};
-
-    for (const vm of vms) {
-        const tag =
-            vm.tags && vm.tags.length > 0
-                ? vm.tags[0]
-                : "untagged";
-
-        result[tag] = (result[tag] || 0) + 1;
-    }
-
-    return result;
+    return { slices, resourceHistory, vmTypeHistory, eventLog, clearEventLog };
 }
