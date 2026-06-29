@@ -65,10 +65,10 @@ INFLUXDB_ORG = os.getenv("INFLUXDB_ORG", "")
 INFLUXDB_BUCKET = os.getenv("INFLUXDB_BUCKET", "proxmox")
 
 WAZUH_HOST = os.getenv("WAZUH_HOST", "")
-WAZUH_API_USER = os.getenv("WAZUH_API_USERNAME", "")
-WAZUH_API_KEY = os.getenv("WAZUH_API_KEY", "")
-# WAZUH_USERNAME = os.getenv("WAZUH_INDEXER_USERNAME", "")
-# WAZUH_PASSWORD = os.getenv("WAZUH_INDEXER_PASSWORD", "")
+WAZUH_API_USERNAME = os.getenv("WAZUH_API_USERNAME", "")
+WAZUH_API_PASSWORD = os.getenv("WAZUH_API_KEY", "")
+WAZUH_USERNAME = os.getenv("WAZUH_INDEXER_USERNAME", "")
+WAZUH_PASSWORD = os.getenv("WAZUH_INDEXER_PASSWORD", "")
 
 DASHBOARD_API_KEY = os.getenv("DASHBOARD_API_KEY", "")
 
@@ -88,12 +88,20 @@ client = ProxmoxClient(PVE_HOST, PVE_API_TOKEN, PVE_API_KEY, VERIFY_SSL)
 influx = InfluxController(INFLUXDB_URL, INFLUXDB_TOKEN, INFLUXDB_ORG, INFLUXDB_BUCKET)
 
 # WAZUH credentials validation
-wazuh: WazuhClient | None = None
-if WAZUH_HOST and WAZUH_API_USER and WAZUH_API_KEY:
-    wazuh = WazuhClient(WAZUH_HOST, WAZUH_API_USER, WAZUH_API_KEY, verify_ssl=False)
-    print("[wazuh] Client initialised")
+wazuh_alert: WazuhClient | None = None
+if WAZUH_HOST and WAZUH_USERNAME and WAZUH_PASSWORD:
+    wazuh_alert = WazuhClient(WAZUH_HOST, WAZUH_USERNAME, WAZUH_PASSWORD, verify_ssl=False)
+    print("[wazuh_alert] Client initialised")
 else:
-    print("[wazuh] WARN — WAZUH_HOST / credentials not set, Wazuh endpoints disabled")
+    print("[wazuh_alert] WARN — WAZUH_HOST / credentials not set, Wazuh endpoints disabled")
+
+# WAZUH credentials validation
+wazuh_log: WazuhClient | None = None
+if WAZUH_HOST and WAZUH_API_USERNAME and WAZUH_API_PASSWORD:
+    wazuh_log = WazuhClient(WAZUH_HOST, WAZUH_API_USERNAME, WAZUH_API_PASSWORD, verify_ssl=False)
+    print("[wazuh_log] Client initialised")
+else:
+    print("[wazuh_log] WARN — WAZUH_HOST / credentials not set, Wazuh endpoints disabled")
 
 # FLASK APP
 app = Flask(__name__)
@@ -431,12 +439,10 @@ def history_cluster():
 # WAZUH API paths
 # Log Data APIs
 # --- /api/alerts --- Security alerts from all agents (Wazuh Indexer)
-import traceback
-
 @app.route("/api/alerts")
 @require_api_key
 def get_alerts():
-    if wazuh is None:
+    if wazuh_alert is None:
         return api_error("Wazuh not configured", 503)
 
     try:
@@ -446,7 +452,7 @@ def get_alerts():
 
         return api_response(
             fetch_alerts(
-                wazuh,
+                wazuh_alert,
                 limit=limit,
                 min_level=min_level,
                 hours=hours,
@@ -454,7 +460,6 @@ def get_alerts():
         )
 
     except Exception as exc:
-        traceback.print_exc()
         return api_error(str(exc))
 
 
@@ -462,15 +467,14 @@ def get_alerts():
 @app.route("/api/logs")
 @require_api_key
 def get_logs():
-    if wazuh is None:
+    if wazuh_log is None:
         return api_error("Wazuh not configured", 503)
     try:
         limit = request.args.get("limit", 100, type=int)
         level = request.args.get("level", None, )  # info | warning | error | debug
         tag = request.args.get("tag", None, )  # e.g. wazuh-analysisd
-        return api_response(fetch_logs(wazuh, limit=limit, level=level, tag=tag))
+        return api_response(fetch_logs(wazuh_log, limit=limit, level=level, tag=tag))
     except RuntimeError as exc:
-        print(traceback.format_exc())
         return api_error(str(exc))
 
 
