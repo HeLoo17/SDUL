@@ -429,17 +429,30 @@ def history_cluster():
 # WAZUH API paths
 # Log Data APIs
 # --- /api/alerts --- Security alerts from all agents (Wazuh Indexer)
+import traceback
+
 @app.route("/api/alerts")
 @require_api_key
 def get_alerts():
     if wazuh is None:
         return api_error("Wazuh not configured", 503)
+
     try:
         limit = request.args.get("limit", 50, type=int)
         min_level = request.args.get("min_level", 3, type=int)
         hours = request.args.get("hours", 24, type=int)
-        return api_response(fetch_alerts(wazuh, limit=limit, min_level=min_level, hours=hours))
-    except RuntimeError as exc:
+
+        return api_response(
+            fetch_alerts(
+                wazuh,
+                limit=limit,
+                min_level=min_level,
+                hours=hours,
+            )
+        )
+
+    except Exception as exc:
+        traceback.print_exc()
         return api_error(str(exc))
 
 

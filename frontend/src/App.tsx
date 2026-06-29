@@ -10,7 +10,7 @@ const router = createBrowserRouter([
       { path: 'dashboard', element: <Pages.Dashboard /> },
       { path: 'nodes', element: <Pages.Nodes /> },
       { path: 'vms', element: <Pages.VMs /> },
-      { path: 'logs', element: <div>System Logs Coming Soon</div> },
+      { path: 'logs', element: <Pages.Logs/> },
       { path: 'historical-trends', element: <Pages.HistoricalTrend /> },
       { path: 'system-status', element: <Pages.SystemStatus /> },
       { path: 'settings', element: <div>Global Settings Coming Soon</div> },

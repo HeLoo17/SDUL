@@ -95,7 +95,7 @@ export default function ThroughputBarChartCard({ slices }: Props) {
                 </div>
             ) : (
                 <div className="w-full h-24">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height={100}>
                     <BarChart
                     data={slices}
                     margin={{ top: 0, right: 0, left: 0, bottom: 0 }}

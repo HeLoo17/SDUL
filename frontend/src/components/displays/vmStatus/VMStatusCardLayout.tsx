@@ -33,12 +33,12 @@ export default function VMStatusCardLayout({ vms }: { vms: VM[] }) {
     const tagOptions = useMemo(() => {
         const tags = new Set<string>();
         vms.forEach(vm => vm.tags?.forEach(tag => tags.add(tag)));
-        return ['All Tags', ...Array.from(tags).sort()];
+        return ['All', ...Array.from(tags).sort()];
     }, [vms]);
 
     useEffect(() => {
         if (!tagOptions.includes(activeTag)) {
-            setActiveTag('All Tags');
+            setActiveTag('All');
         }
     }, [tagOptions, activeTag]);
 
@@ -77,14 +77,14 @@ export default function VMStatusCardLayout({ vms }: { vms: VM[] }) {
 
                 <div className="flex gap-4">
                      {/* ACTIVE TAG BADGE */}
-                    {activeTag !== "All Tags" && (
+                    {activeTag !== "All" && (
                         <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-t2/20 border border-t2/30">
                             <span className="text-[11px] font-inter font-semibold text-t3 leading-none">
                                 {activeTag}
                             </span>
 
                             <button
-                                onClick={() => setActiveTag("All Tags")}
+                                onClick={() => setActiveTag("All")}
                                 className="flex items-center justify-center leading-none"
                             >
                                 <navi.closeIcon className="h-5 text-t1 hover:text-t3" />
@@ -92,14 +92,14 @@ export default function VMStatusCardLayout({ vms }: { vms: VM[] }) {
                         </div>
                     )}
 
-                    {tagOptions.length > 1 && activeTag === 'All Tags' && (
+                    {tagOptions.length > 1 && activeTag === 'All' && (
                         <div ref={dropdownRef} className="relative inline-block w-[140px]">
                             {/* DROPDOWN TRIGGER BUTTON */}
                             <button
                                 onClick={() => setIsOpen(!isOpen)}
                                 className="flex items-center justify-between w-full bg-primary-BACK text-t1 text-[12px] font-inter font-bold px-4 py-3 rounded-md hover:bg-t2/20 transition-colors"
                             >
-                                <span>{activeTag}</span>
+                                <span>{activeTag === 'All' ? 'All Tags' : activeTag}</span>
                                 {/* Minimal SVG Chevron Arrow */}
                                 <svg 
                                     className={`w-3 h-3 text-t1 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} 

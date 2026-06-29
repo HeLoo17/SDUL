@@ -3,6 +3,7 @@ import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import { useSocket, type UseSocketReturn } from "../hooks/useSocket";
 import { useChartData } from "../hooks/useChartData";
+import { useWazuhAlerts } from "../hooks/useWazuhAlert";
 
 const DEFAULT_UPSTREAM_SERVICE = {
     reachable:    false,
@@ -54,6 +55,7 @@ export default function DashboardLayout () {
     const rawData = useSocket() ?? EMPTY_SOCKET_DATA;
 
     const { slices, resourceHistory, vmTypeHistory, eventLog, clearEventLog } = useChartData(rawData) ?? {};
+    const wazuhAlerts = useWazuhAlerts();
 
     return (
         <div className="h-screen w-full flex overflow-hidden">
@@ -65,7 +67,7 @@ export default function DashboardLayout () {
                 </div>
 
                 <main className="h-full w-full p-4 bg-primary flex flex-col overflow-y-auto scrollbar-track-transparent scrollbar-thin scrollbar-thumb-[#262A34]">
-                    <Outlet context={{rawData, slices, resourceHistory, vmTypeHistory, eventLog, clearEventLog}}/>
+                    <Outlet context={{rawData, slices, resourceHistory, vmTypeHistory, eventLog, clearEventLog, wazuhAlerts}}/>
                 </main>
                 <div className="h-4 bg-primary" />
             </div>
