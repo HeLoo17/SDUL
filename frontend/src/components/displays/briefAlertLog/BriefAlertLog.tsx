@@ -1,6 +1,14 @@
+import { useOutletContext } from "react-router-dom";
 import BriefAlertLogRecords from "./BriefAlertLogRecords";
+import type { UseWazuhAlertsReturn } from "../../../hooks/useWazuhAlert";
 
 export default function BriefAlertLog() {
+    const { wazuhAlerts } = useOutletContext<{wazuhAlerts: UseWazuhAlertsReturn}>();
+    const { alerts, isLoading, error } = wazuhAlerts;
+ 
+    // Show only the 3 most recent on the dashboard summary
+    const recent = alerts.slice(0, 3);
+    
     return (
         <div className='w-full flex flex-col bg-primary-BACK rounded-lg'>
             {/* HEADERS */}
@@ -15,10 +23,33 @@ export default function BriefAlertLog() {
                 <span className="text-[10px] text-t2 font-inter font-semiBold uppercase">description</span>
                 <span className="text-[10px] text-t2 font-inter font-semiBold uppercase">time</span>
             </div>
-            {/* LOG RECORDS */}
-            <BriefAlertLogRecords severity="critical" host="Node 3" description="Unusual outbound traffic detected" time="2024-06-15 14:32:10" />
-            <BriefAlertLogRecords severity="warning" host="Node 5" description="Multiple failed login attempts" time="2024-06-15 13:45:22" />
-            <BriefAlertLogRecords severity="notice" host="Node 2" description="New software installed" time="2024-06-15 12:20:05" />
+            {isLoading && alerts.length === 0 ? (
+                <div className="flex items-center justify-center py-10">
+                    <span className="text-[11px] text-t2 font-inter uppercase tracking-widest animate-pulse">
+                        fetching alerts...
+                    </span>
+                </div>
+            ) : error ? (
+                <div className="px-8 py-6">
+                    <span className="text-[11px] text-[#FFB4AB] font-inter">{error}</span>
+                </div>
+            ) : recent.length === 0 ? (
+                <div className="flex items-center justify-center py-10">
+                    <span className="text-[11px] text-t2 font-inter uppercase tracking-widest">
+                        no alerts in the last 24 h
+                    </span>
+                </div>
+            ) : (
+                recent.map((alert) => (
+                    <BriefAlertLogRecords
+                        key={alert.id}
+                        severity={alert.severity}
+                        host={alert.host}
+                        description={alert.description}
+                        time={alert.timestamp}
+                    />
+                ))
+            )}
             <div className="h-2" />
         </div>
     )
