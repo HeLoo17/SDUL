@@ -1,5 +1,5 @@
-import { useWazuhLogs, type UseWazuhLogsReturn } from "../../../hooks/useWazuhLogs";
-import type { WazuhLog } from "../../../types";
+import { useWazuhLogs } from "../../../hooks/useWazuhLogs";
+// import type { WazuhLog } from "../../../types";
 import LogRows from "./LogRows";
 
 // const LEVEL_OPTIONS = ["all", "info", "warning", "error", "debug"] as const;
@@ -129,7 +129,7 @@ export default function LogTable() {
     // const [level, setLevel] = useState<LogLevel | "all">("all");
     // const [tag,   setTag]   = useState<string>("all");
     
-    const { logs, isLoading, error, lastFetched, refetch } = useWazuhLogs({ limit: 100 });
+    const { logs, isLoading } = useWazuhLogs({ limit: 100 });
     // const { logs, isLoading } = fakeWazuhLogs;
     const lowerBoarderBg = logs.length%2 === 0 ? 'bg-[#262A34]/80' : 'bg-[#262A34]/50';
 

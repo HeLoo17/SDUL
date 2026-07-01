@@ -97,8 +97,8 @@ export function useChartData(rawData: UseSocketReturn): ChartDataReturn {
         const diskRaw = sumThroughput(nodes, "disk");
         const disk = diskRaw < 1 ? diskRaw * 100 : diskRaw;
 
-        const summary =
-            typeof rawData.summary === "object" ? rawData.summary : null;
+        // const summary =
+        //     typeof rawData.summary === "object" ? rawData.summary : null;
 
         const cpu =  averageCpuUsage(nodes);
 
