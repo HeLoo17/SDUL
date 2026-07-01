@@ -102,7 +102,7 @@ class InfluxController:
                 .tag("node", node)
                 .tag("status", status)
                 .field("status_running", 1 if status == "running" else 0)
-                .field("cpu_usage", cpu)
+                .field("cpu_usage", float(cpu))
                 .field("cpu_assigned", cpu_assigned)
                 .field("mem_used", mem)
                 .field("mem_total", maxmem)
