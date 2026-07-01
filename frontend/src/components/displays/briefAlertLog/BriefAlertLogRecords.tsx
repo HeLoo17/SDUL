@@ -1,4 +1,4 @@
-import type { Alert } from '../../../types';
+import { formatLogTime, type Alert } from '../../../types';
 
 const getSeverityColor = (severity: string) => {
     switch (severity.toLowerCase()) {
@@ -24,7 +24,7 @@ export default function BriefAlertLogRecords({ severity, host, description, time
             <SeverityTag tag={severity} />
             <span className="text-[10px] text-graph-LEGEND font-inter font-semiBold uppercase">{host}</span>
             <span className="text-[10px] text-graph-LEGEND font-inter font-semiBold uppercase">{description}</span>
-            <span className="text-[10px] text-graph-LEGEND font-inter font-semiBold uppercase">{time}</span>
+            <span className="text-[10px] text-graph-LEGEND font-inter font-semiBold uppercase">{formatLogTime(time)}</span>
         </div>
     )
 }

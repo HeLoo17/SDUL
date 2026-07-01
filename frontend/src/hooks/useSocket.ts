@@ -2,7 +2,7 @@
  * useSocket.ts
  * 3-Tier data source with automatics fallback
  * 
- * T1 - WebSocekt
+ * T1 - WebSocket (PROXMOX, WAZUH)
  * T2 - REST API
  * T3 - InfluxDB Stale Data
  */
@@ -10,7 +10,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { io } from "socket.io-client";
-import type { RawNodeAPI, RawVMAPI } from "../types";
+import type { RawNodeAPI, RawVMAPI, WazuhAlert } from "../types";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
 const API_KEY = import.meta.env.VITE_API_KEY || "";
@@ -18,9 +18,8 @@ const MAX_EVENTS = 100;
 const REST_INTERVAL = 3000;         //Tier 2: poll every 5 seconds
 const INFLUX_INTERVAL = 3000;       //Tier 3: poll every 5 seconds
 const TIER_CHECK_DELAY = 3000;      //Tier 1 disconnect buffer time before switch to Tier 2
-
-// System status health snapshot speed (ms)
-const STATUS_POLL_INTERVAL = 10_000;
+const STATUS_POLL_INTERVAL = 10000;    // System status health snapshot speed (ms)
+const ALERT_REST_INTERVAL = 30000;      // Wazuh Alert every 30 sec
 
 type DataSource = "websocket" | "rest" | "influx_stale" | "unavailable";
 
@@ -92,6 +91,12 @@ interface HistoryRow {
     iowait?: number;
 }
 
+
+interface SocketAlertsPayload {
+    alerts?:    WazuhAlert[] | null;
+    timestamp?: string | null;
+}
+
 interface SocketMetricsPayload {
     nodes?: RawNodeAPI[] | null;
     vms?: RawVMAPI[] | null;
@@ -109,6 +114,7 @@ export interface UseSocketReturn {
     nodes: RawNodeAPI[];
     vms: RawVMAPI[];
     summary: SummaryData;
+    alerts: WazuhAlert[];
     dataSource: DataSource;
     dataTimestamp: string | null;
     nodeEvents: SocketEvent[];
@@ -172,6 +178,7 @@ export function useSocket(): UseSocketReturn {
     const [nodes, setNodes] = useState<RawNodeAPI[]>([]);
     const [vms, setVms] = useState<RawVMAPI[]>([]);
     const [summary, setSummary] = useState<SummaryData>([]);
+    const [alerts,  setAlerts]  = useState<WazuhAlert[]>([]);
     const [dataSource, setDataSource] = useState<DataSource>("unavailable");
     const [dataTimestamp, setDataTimestamp] = useState<string | null>(null);
     const [collectorError, setCollectorError] = useState<string | null>(null);
@@ -184,6 +191,7 @@ export function useSocket(): UseSocketReturn {
     const restIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const influxIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const statusIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const alertRestIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     const addEvent = useCallback((
         setter: Dispatch<SetStateAction<SocketEvent[]>>,
@@ -279,6 +287,23 @@ export function useSocket(): UseSocketReturn {
         }
     }, []);
 
+    const stopAlertRestPolling = useCallback(() => {
+        if (alertRestIntervalRef.current) {
+            clearInterval(alertRestIntervalRef.current);
+            alertRestIntervalRef.current = null;
+        }
+    }, []);
+ 
+    const fetchAlertsRest = useCallback(async () => {
+        if (wsConnectedRef.current) return;
+        try {
+            const data = await apiFetch<WazuhAlert[]>("/api/alerts?limit=50&min_level=3&hours=24");
+            setAlerts(data);
+        } catch {
+            // Non-fatal — alerts are supplementary, don't affect tier state
+            console.warn("[tier2] REST alert fetch failed");
+        }
+    }, []);
 
     const fetchRest = useCallback(async () => {
         // Check if T1 is working
@@ -312,6 +337,12 @@ export function useSocket(): UseSocketReturn {
             }
         }
     }, [applyMetrics, fetchInfuxFallBack, stopRestPolling, stopInfluxPolling]);
+ 
+    const startAlertRestPolling = useCallback(() => {
+        if (alertRestIntervalRef.current) return;
+        fetchAlertsRest();
+        alertRestIntervalRef.current = setInterval(fetchAlertsRest, ALERT_REST_INTERVAL);
+    }, [fetchAlertsRest]);
 
 
     const startRestPolling = useCallback(() => {
@@ -322,9 +353,11 @@ export function useSocket(): UseSocketReturn {
             if (!wsConnectedRef.current) {
                 fetchRest();
                 restIntervalRef.current = setInterval(fetchRest, REST_INTERVAL);
+                startAlertRestPolling();
             }
         }, TIER_CHECK_DELAY);
     }, [fetchRest]);
+
 
 
     // Tier 1 - Websocket (Priamry)
@@ -345,6 +378,7 @@ export function useSocket(): UseSocketReturn {
             // Stop other tiers when WebSocket is up
             stopRestPolling();
             stopInfluxPolling();
+            stopAlertRestPolling();
             setCollectorError(null);
         });
 
@@ -371,6 +405,13 @@ export function useSocket(): UseSocketReturn {
             );
         });
 
+        // Wazuh alert push
+        socket.on("wazuh_alerts", (data: SocketAlertsPayload) => {
+            if (data.alerts) {
+                setAlerts(data.alerts);
+            }
+        });
+
         // State change events
         socket.on("node_status_change", (event: SocketEvent) => {
             console.log("[ws] node_status_change:", event);
@@ -393,9 +434,10 @@ export function useSocket(): UseSocketReturn {
             stopRestPolling();
             stopStatusPolling();
             stopInfluxPolling();
+            stopAlertRestPolling();
             if (restTimeoutRef.current) clearTimeout(restTimeoutRef.current);
         };
-    }, [applyMetrics, addEvent, startRestPolling, stopRestPolling, stopInfluxPolling]);
+    }, [applyMetrics, addEvent, startRestPolling, stopRestPolling, stopInfluxPolling, stopAlertRestPolling, stopStatusPolling, stopInfluxPolling, startStatusPolling]);
 
 
     // Combine event logs into newest align
@@ -438,6 +480,7 @@ export function useSocket(): UseSocketReturn {
         nodes,
         vms,
         summary,
+        alerts,
         dataSource,              // "websocket" | "rest" | "influx_stale" | "unavailable"
         dataTimestamp,
         nodeEvents,     

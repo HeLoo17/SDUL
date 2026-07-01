@@ -1,23 +1,19 @@
 import type { WazuhLog } from "../../../types";
  
-const LEVEL_COLORS: Record<string, string> = {
-    info:    "#A6B6D5",
-    warning: "#FE651E",
-    error:   "#93000A",
-    debug:   "#414755",
-};
+const LEVEL_COLORS: Record<string, [string, string]> = {
+        debug: ['#B74ADE', '#271E2A'],
+        error: ['#FC5844', '#2D1414'],
+        info:  ['#C1C6D7', '#31353F'],
+        warning: ['#FFD5AB', '#4E3D2C']
+    };
 
 // Supporting components
 function LevelTag({ level }: { level: string }) {
-    const color = LEVEL_COLORS[level] ?? LEVEL_COLORS.info;
+    const [textColor, bgColor] = LEVEL_COLORS[level] || ['#FFFFFF', '#31353F'];
     return (
-        <div
-            className="h-fit w-16 px-2 py-1 rounded-sm flex items-center justify-center"
-            style={{ backgroundColor: color }}
-        >
-            <span className="text-[10px] text-white font-inter font-semibold uppercase">
-                {level}
-            </span>
+        <div className="w-fit flex items-center justify-center px-3 py-1 rounded-full gap-2" style={{ backgroundColor: bgColor, borderWidth: "1px", borderColor: textColor, borderStyle: "solid" }}>
+            <div style={{ backgroundColor: textColor}} className="h-1 w-1 rounded-full" />
+            <span className="text-[10px] font-inter font-bold capitalize items-center" style={{ color: textColor}}>{level}</span>
         </div>
     );
 }
@@ -36,24 +32,36 @@ function formatTimestamp(ts: string): string {
 }
 
 export default function LogRows({i, log}: {i: number, log: WazuhLog}) {
+    const formattedDescription = log.description.length > 68 ? log.description.slice(0, 67) + '...' : log.description;
+
+
     return (
-        <div className="h-full w-full flex flex-col gap-8">
-            <div
-                key={i}
-                className={`grid grid-cols-[100px_160px_160px_1fr] items-center gap-4 px-8 py-4
-                            ${i % 2 === 0 ? "bg-[#262A34]/50" : "bg-[#262A34]/80"}`}
-            >
-                <LevelTag level={log.level} />
-                <span className="text-[10px] text-graph-LEGEND font-inter font-semibold uppercase truncate">
-                    {log.tag.replace("wazuh-", "")}
-                </span>
-                <span className="text-[10px] text-graph-LEGEND font-inter">
-                    {formatTimestamp(log.timestamp)}
-                </span>
-                <span className="text-[10px] text-graph-LEGEND font-inter">
-                    {log.description}
-                </span>
-            </div>
+        <div
+            key={i}
+            className={`grid grid-cols-[1fr_1fr_1fr_1fr_1fr_3fr] items-center gap-4 px-8 py-4
+                        ${i % 2 === 0 ? "bg-[#262A34]/50" : "bg-[#262A34]/80"}`}
+        >
+            {/* TIMESTAMP */}
+            <span className="text-[10px] text-graph-LEGEND font-mono">
+                {formatTimestamp(log.timestamp)}
+            </span>
+            {/* HOST - DEFAULT WAZUH-MANAGER */}
+            <span className="text-[10px] text-graph-LEGEND font-inter">
+                {log.host ? log.host: "wazuh-manager"}
+            </span>
+            {/* SEVERITY LEVEL */}
+            <LevelTag level={log.level} />
+            <span className="text-[10px] text-graph-LEGEND font-inter font-semibold uppercase truncate">
+                {log.tag.replace("wazuh-", "")}
+            </span>
+            {/* IP ADDRESS */}
+            <span className="text-[10px] text-graph-LEGEND font-inter">
+                {log.src_ip ? log.src_ip: "172.29.0.100"}
+            </span>
+            {/* LOG DESCRIPTION */}
+            <span className="text-[10px] text-graph-LEGEND font-mono">
+                {formattedDescription}
+            </span>
         </div>
     )
 }

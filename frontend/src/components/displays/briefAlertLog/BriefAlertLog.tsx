@@ -1,10 +1,10 @@
 import { useOutletContext } from "react-router-dom";
 import BriefAlertLogRecords from "./BriefAlertLogRecords";
-import type { UseWazuhAlertsReturn } from "../../../hooks/useWazuhAlert";
+import type { UseSocketReturn } from "../../../hooks/useSocket";
 
 export default function BriefAlertLog() {
-    const { wazuhAlerts } = useOutletContext<{wazuhAlerts: UseWazuhAlertsReturn}>();
-    const { alerts, isLoading, error } = wazuhAlerts;
+    const { rawData } = useOutletContext<{rawData: UseSocketReturn}>();
+    const { alerts } = rawData;
  
     // Show only the 3 most recent on the dashboard summary
     const recent = alerts.slice(0, 3);
@@ -23,15 +23,13 @@ export default function BriefAlertLog() {
                 <span className="text-[10px] text-t2 font-inter font-semiBold uppercase">description</span>
                 <span className="text-[10px] text-t2 font-inter font-semiBold uppercase">time</span>
             </div>
-            {isLoading && alerts.length === 0 ? (
+            
+            {/* ROWS */}
+            {alerts.length === 0 ? (
                 <div className="flex items-center justify-center py-10">
                     <span className="text-[11px] text-t2 font-inter uppercase tracking-widest animate-pulse">
-                        fetching alerts...
+                        awaiting alerts...
                     </span>
-                </div>
-            ) : error ? (
-                <div className="px-8 py-6">
-                    <span className="text-[11px] text-[#FFB4AB] font-inter">{error}</span>
                 </div>
             ) : recent.length === 0 ? (
                 <div className="flex items-center justify-center py-10">

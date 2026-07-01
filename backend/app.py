@@ -70,6 +70,9 @@ WAZUH_API_PASSWORD = os.getenv("WAZUH_API_KEY", "")
 WAZUH_USERNAME = os.getenv("WAZUH_INDEXER_USERNAME", "")
 WAZUH_PASSWORD = os.getenv("WAZUH_INDEXER_PASSWORD", "")
 
+# Seperate Alert from Metrics WebSocket to prevent inteference when error occurs
+WAZUH_ALERT_INTERVAL = int(os.getenv("WAZUH_ALERT_INTERVAL", "30"))
+
 DASHBOARD_API_KEY = os.getenv("DASHBOARD_API_KEY", "")
 
 # Early validation - alert missing config early
@@ -83,6 +86,8 @@ _missing = [name for name, val in {
 if _missing:
     raise RuntimeError(f"Missing required .env varaible(s): {', '.join(_missing)}")
 
+
+# Clients
 cache = DataCache()
 client = ProxmoxClient(PVE_HOST, PVE_API_TOKEN, PVE_API_KEY, VERIFY_SSL)
 influx = InfluxController(INFLUXDB_URL, INFLUXDB_TOKEN, INFLUXDB_ORG, INFLUXDB_BUCKET)
@@ -103,7 +108,8 @@ if WAZUH_HOST and WAZUH_API_USERNAME and WAZUH_API_PASSWORD:
 else:
     print("[wazuh_log] WARN — WAZUH_HOST / credentials not set, Wazuh endpoints disabled")
 
-# FLASK APP
+
+# FLASK + SocketIO
 app = Flask(__name__)
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
@@ -192,7 +198,7 @@ def on_disconnect():
     print("[WebSocket] Client disconnected")
 
 
-# --- Collector Loops and Threads ---
+# --- Collector Loops and Threads [PROXMOX METRICS] ---
 def _node_states(nodes: list[dict]) -> dict:
     return {n.get("node"): n.get("status") for n in nodes}
 
@@ -293,9 +299,49 @@ def collector_loop():
         time.sleep(POLL_INTERVAL)
 
 
-# Run before FLASK to early prepare data in cache before request
+# Collector loops for alert [WAZUH ALERT]
+def wazuh_alert_loop():
+    if wazuh_alert is None:
+        print("[wazuh_alert_loop] Wazuh not configured — alert loop not started")
+        return
+    
+    while True:
+        t_start = time.monotonic()
+        try:
+            alerts      = fetch_alerts(wazuh_alert, limit=50, min_level=3, hours=24)
+            response_ms = (time.monotonic() - t_start) * 1000
+ 
+            cache.set_upstream_result(
+                service="wazuh",
+                reachable=True,
+                response_ms=response_ms,
+                error=None,
+            )
+
+            socketio.emit("wazuh_alerts", {
+                "alerts":    alerts,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            })
+            print(f"[wazuh_loop] OK — {len(alerts)} alerts pushed")
+
+        except RuntimeError as exc:
+            response_ms = (time.monotonic() - t_start) * 1000
+            cache.set_upstream_result(
+                service="wazuh",
+                reachable=False,
+                response_ms=response_ms,
+                error=str(exc),
+            )
+            print(f"[wazuh_loop] ERROR — {exc}")
+    
+        time.sleep(WAZUH_ALERT_INTERVAL)
+
+
+# Run background THREATS before FLASK to early prepare data in cache before request
 _thread = threading.Thread(target=collector_loop, daemon=True)
+_thread_wazuh = threading.Thread(target=wazuh_alert_loop,  daemon=True)
 _thread.start()
+_thread_wazuh.start()
 
 
 # ----- REST API SECTION -----

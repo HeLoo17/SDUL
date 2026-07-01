@@ -14,6 +14,7 @@ import errorVm from "./errorVm.svg?react";
 import closeIcon from "./close.svg?react";
 import cardView from "./cardView.svg?react";
 import tableView from "./tableView.svg?react";
+import addIcon from "./add.svg?react";
 
 const navi = {
     dashboard,
@@ -31,7 +32,8 @@ const navi = {
     errorVm,
     closeIcon,
     cardView,
-    tableView
+    tableView,
+    addIcon
 };
 
 export default navi;

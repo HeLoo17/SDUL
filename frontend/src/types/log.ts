@@ -25,5 +25,22 @@ export interface WazuhLog {
     tag: string;           // daemon name e.g. wazuh-analysisd
     level: LogLevel;
     description: string;
+    src_ip?: string;    // Change regarding WazuhManager ip
+    host?: string;
 }
 
+export function formatLogTime(time: string | number | null | undefined) {
+  if (!time) return "-";
+
+  const date = new Date(time);
+
+  return date.toLocaleString("en-GB", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+}

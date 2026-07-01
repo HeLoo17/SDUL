@@ -31,6 +31,7 @@ export default function UpstreamConnectionStatusCard( { upstreamStatus, service 
     const formatedLastSync = formatDateTime(upstreamStatus.last_success);
     const formatedLastAttempt = formatDateTime(upstreamStatus.last_attempt);
     const [connection_service, description] = setTitleDescription(service);
+    const formattedError = upstreamStatus.error ? upstreamStatus.error.length > 55 ? upstreamStatus.error.slice(0, 55) + '...' : upstreamStatus.error : '-';
 
     return (
         <div className="flex flex-col w-full h-fit gap-8 p-8 bg-primary-BACK rounded-lg">
@@ -58,7 +59,7 @@ export default function UpstreamConnectionStatusCard( { upstreamStatus, service 
                 </div>
                 <div className="w-full flex justify-between border-b-[1px] border-t2/10 py-2">
                     <span className="font-inter text-t1 font-normal text-xs"> Error </span>
-                    <span className="font-mono text-t3 font-normal text-xs"> {upstreamStatus.error ? upstreamStatus.error : '-'} </span>
+                    <span className="font-mono text-t3 font-normal text-xs"> {formattedError} </span>
                 </div>
             </div>
         </div>
