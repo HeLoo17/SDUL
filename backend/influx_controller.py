@@ -58,7 +58,7 @@ class InfluxController:
                     .tag("node", name)
                     .tag("status", status)
                     .field("status_online", 1 if status == "online" else 0)
-                    .field("cpu", cpu)
+                    .field("cpu", float(cpu))
                     .field("maxcpu", maxcpu)
                     .field("mem", mem)
                     .field("maxem", maxmem)

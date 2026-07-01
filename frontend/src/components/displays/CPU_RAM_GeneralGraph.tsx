@@ -92,7 +92,7 @@ export default function CPU_RAM_GeneralGraph({historyData }: CPU_RAM_GeneralGrap
                             }}
                             labelStyle={{ color: "#94a3b8", marginBottom: 4 }}
                             formatter={(value, name) => [
-                            `${Number(value)}%`,
+                            `${Number(value).toFixed(2)}%`,
                             name === "cpu" ? "CPU" : "Memory",
                             ] as [string, string]}
                         />
