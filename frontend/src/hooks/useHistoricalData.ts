@@ -15,7 +15,7 @@ const HOURS_MAP: Record<TimeRange, number> = {
 export interface HistoricalPoint {
     time: string;
     cpu: number;
-    memory: number;
+    mem: number;
 }
 
 export function useHistoricalData(range: TimeRange) {

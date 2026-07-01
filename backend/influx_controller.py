@@ -61,7 +61,7 @@ class InfluxController:
                     .field("cpu", float(cpu))
                     .field("maxcpu", maxcpu)
                     .field("mem", mem)
-                    .field("maxem", maxmem)
+                    .field("maxmem", maxmem)
                     .field("disk", disk)
                     .field("maxdisk", maxdisk)
                     .field("uptime", uptime)

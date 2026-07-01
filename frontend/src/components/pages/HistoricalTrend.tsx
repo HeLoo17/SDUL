@@ -18,9 +18,9 @@ export default function HistoricalTrend() {
     const { data, loading, error } = useHistoricalData(range);
 
     const avgCpu = data.length > 0 ? data.reduce((sum, cur) => sum + cur.cpu, 0) / data.length : 0;
-    const avgMemory = data.length > 0 ? data.reduce((sum, cur) => sum + cur.memory, 0) / data.length : 0;
+    const avgMemory = data.length > 0 ? data.reduce((sum, cur) => sum + cur.mem, 0) / data.length : 0;
     const peakCpu = data.length > 0 ? [data.reduce((peak, cur) => {return cur.cpu >= peak.cpu ? cur: peak})] : [{cpu: 0, time: ""}];
-    const peakMemory = data.length > 0 ? [data.reduce((peak, cur) => {return cur.memory >= peak.memory ? cur: peak})] : [{memory: 0, time: ""}];
+    const peakMemory = data.length > 0 ? [data.reduce((peak, cur) => {return cur.mem >= peak.mem ? cur: peak})] : [{mem: 0, time: ""}];
 
     console.log("Historical data:", data);
     console.log("Loading:", loading);
@@ -47,7 +47,7 @@ export default function HistoricalTrend() {
                 <KPICards2 on={avgCpu} total={100} title="AVG CPU Usage" info="System Load" icon={deco.cpuUsage} />
                 <HistoryPeak_KPICards on={peakCpu[0].cpu} title="Peak CPU Usage" time={peakCpu[0].time} icon={deco.peakCpu} />
                 <KPICards2 on={avgMemory} total={100} title="AVG Memory Usage" info="Usage" icon={deco.memoryUsage} />
-                <HistoryPeak_KPICards on={peakMemory[0].memory} title="Peak Memeory Usage" time={peakMemory[0].time} icon={deco.peakMemory} />
+                <HistoryPeak_KPICards on={peakMemory[0].mem} title="Peak Memeory Usage" time={peakMemory[0].time} icon={deco.peakMemory} />
             </div>
             
             <HistoricalGraph data={data} loading={loading} error={error} range={range}/>
