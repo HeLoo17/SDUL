@@ -1,5 +1,4 @@
-// Alerts
-export type AlertSeverity = "notice" | "warning" | "critical";
+import {type AlertSeverity} from "./alert";
  
 export interface WazuhAlert {
     id: string;
