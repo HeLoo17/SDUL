@@ -22,6 +22,9 @@ export default function HistoricalTrend() {
     const peakCpu = data.length > 0 ? [data.reduce((peak, cur) => {return cur.cpu >= peak.cpu ? cur: peak})] : [{cpu: 0, time: ""}];
     const peakMemory = data.length > 0 ? [data.reduce((peak, cur) => {return cur.memory >= peak.memory ? cur: peak})] : [{memory: 0, time: ""}];
 
+    console.log("Historical data:", data);
+    console.log("Loading:", loading);
+    console.log("Error:", error);
 
     return (
         <div className="h-full w-full flex flex-col gap-12">
@@ -46,6 +49,7 @@ export default function HistoricalTrend() {
                 <KPICards2 on={avgMemory} total={100} title="AVG Memory Usage" info="Usage" icon={deco.memoryUsage} />
                 <HistoryPeak_KPICards on={peakMemory[0].memory} title="Peak Memeory Usage" time={peakMemory[0].time} icon={deco.peakMemory} />
             </div>
+            
             <HistoricalGraph data={data} loading={loading} error={error} range={range}/>
         </div>
     )
