@@ -465,10 +465,10 @@ def history_cluster():
         buckets = defaultdict(lambda: {"cpu_sum": 0, "cpu_count": 0, "mem_used": 0, "mem_total": 0})
         for row in rows:
             t = row["time"]
-            buckets[t]["cpu_sum"] += row.get("cpu_used", 0)
+            buckets[t]["cpu_sum"] += row.get("cpu", 0)
             buckets[t]["cpu_count"] += 1
-            buckets[t]["mem_used"] += row.get("mem_used", 0)
-            buckets[t]["mem_total"] += row.get("mem_total", 0)
+            buckets[t]["mem_used"] += row.get("mem", 0)
+            buckets[t]["mem_total"] += row.get("maxmem", 0)
         
         chart_points = []
         for t in sorted(buckets):
