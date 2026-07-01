@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import SearchIcon from '../../assets/buttons/search.svg?react'
 import CalendarIcon from '../../assets/buttons/calendar.svg?react'
 import navi from '../../assets/icons';
+import FilterIcon from '../../assets/buttons/filter.svg?react'
 
 
 interface LogSearchFilterProps {
@@ -39,6 +40,7 @@ export default function LogSearchFilter({value, onChange, timeFilter, setTimeFil
     const dropdownRef = useRef<HTMLDivElement>(null);
     const [isOpen, setIsOpen] = useState(false);
     const [isFieldsOpen, setIsFieldsOpen] = useState(false);
+    const [isOperatorsOpen, setIsOperatorsOpen] = useState(false);
 
     const [filters, setFilters] = useState<Filter[]>([]);
 
@@ -95,7 +97,7 @@ export default function LogSearchFilter({value, onChange, timeFilter, setTimeFil
                         onClick={() => setIsOpen(false)}
                         className="flex items-center justify-between w-full bg-[#262A34]/50 text-t1 text-[12px] font-inter font-bold px-4 py-3 rounded-md hover:bg-t2/20 transition-colors gap-1"
                     >
-                        <CalendarIcon className='h-5 w-5 text-t3' />
+                        <FilterIcon className='h-5 w-5 text-t3' />
                         <span className='uppercase w-28 leading-none'>{timeFilter}</span>
                         {/* Minimal SVG Chevron Arrow */}
                         <svg 
@@ -132,6 +134,8 @@ export default function LogSearchFilter({value, onChange, timeFilter, setTimeFil
                     )}
                 </div>
 
+
+
                 {/* MODERN FILTER  */}
                 {/* FILTER BUTTON & APPLIE FILTER TAGS*/}
                 <div className="w-full flex items-center justify-between">
@@ -140,7 +144,7 @@ export default function LogSearchFilter({value, onChange, timeFilter, setTimeFil
                             onClick={() => setIsOpen(!isOpen)}
                             className="flex items-center justify-between w-full bg-[#262A34]/60 text-t1 text-[12px] font-inter font-bold px-4 py-3 rounded-md hover:bg-t2/20 transition-colors gap-1"
                         >
-                            <CalendarIcon className='h-5 w-5 text-t3' />
+                            <FilterIcon className='h-5 w-5 text-t3' />
                             <span className='uppercase w-20 leading-none'>Filter ({filters.length})</span>
                         </button>
                     </div>
@@ -161,10 +165,10 @@ export default function LogSearchFilter({value, onChange, timeFilter, setTimeFil
                             <div className="relative gap-3 w-30">
                                 <button
                                     onClick={() => setIsFieldsOpen(!isFieldsOpen)}
-                                    className="flex items-center justify-between bg-[#262A34]/50 text-t1 text-[12px] font-inter font-bold px-4 py-3 rounded-md hover:bg-t2/20 transition-colors gap-1"
+                                    className="flex items-center justify-between bg-primary/50 text-t1 text-[12px] font-inter font-bold px-4 py-3 rounded-md hover:bg-t2/20 transition-colors gap-1"
                                 >
                                     <CalendarIcon className='h-5 w-5 text-t3' />
-                                    <span className='uppercase w-28 leading-none'>{FIELDS[0]}</span>
+                                    <span className=' w-28 leading-none'>{FIELDS[0]}</span>
                                     {/* Minimal SVG Chevron Arrow */}
                                     <svg 
                                         className={`w-3 h-3 text-t1 transition-transform duration-200 ${isFieldsOpen ? 'rotate-180' : ''}`} 
@@ -184,11 +188,11 @@ export default function LogSearchFilter({value, onChange, timeFilter, setTimeFil
                                             <button
                                                 key={tag}
                                                 onClick={() => {
-                                                    setTimeFilter(tag); //TODO: Changes needed
+                                                    setField(tag); //TODO: Changes needed
                                                     setIsFieldsOpen(false);
                                                 }}
-                                                className={`w-full text-left text-[12px] text-t1 font-inter font-bold px-4 py-2 rounded-md transition-colors uppercase
-                                                    ${timeFilter === tag
+                                                className={`w-full text-left text-[12px] text-t1 font-inter font-bold px-4 py-2 rounded-md transition-colors 
+                                                    ${field === tag
                                                         ? 'bg-[#262A34]/50 text-t3'
                                                         : 'hover:bg-t2/30 hover:text-t3'
                                                     }`}
@@ -200,7 +204,50 @@ export default function LogSearchFilter({value, onChange, timeFilter, setTimeFil
                                 )}
                             </div>
 
-                            {/* FIELD */}
+                            {/* OPERATOR DROPDOWN TRIGGER BUTTON */}
+                            <div className="relative gap-3 w-30">
+                                <button
+                                    onClick={() => setIsOperatorsOpen(!isOperatorsOpen)}
+                                    className="flex items-center justify-between bg-primary/50 text-t1 text-[12px] font-inter font-bold px-4 py-3 rounded-md hover:bg-t2/20 transition-colors gap-1"
+                                >
+                                    <CalendarIcon className='h-5 w-5 text-t3' />
+                                    <span className='w-28 leading-none'>{OPERATORS[0]}</span>
+                                    {/* Minimal SVG Chevron Arrow */}
+                                    <svg 
+                                        className={`w-3 h-3 text-t1 transition-transform duration-200 ${isOperatorsOpen ? 'rotate-180' : ''}`} 
+                                        fill="none" 
+                                        viewBox="0 0 24 24" 
+                                        stroke="currentColor" 
+                                        strokeWidth="3"
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                                    </svg>
+                                </button>
+
+                                {/* DROPDOWN MENU LIST */}
+                                {isOperatorsOpen && (
+                                    <div className="w-full absolute left-0 right-0 mt-1 bg-primary-BACK border border-t2/50 rounded-lg p-1 flex flex-col gap-1 z-50 shadow-xl">
+                                        {OPERATORS.map((tag) => (
+                                            <button
+                                                key={tag}
+                                                onClick={() => {
+                                                    setOperator(tag); //TODO: Changes needed
+                                                    setIsOperatorsOpen(false);
+                                                }}
+                                                className={`w-full text-left text-[12px] text-t1 font-inter font-bold px-4 py-2 rounded-md transition-colors 
+                                                    ${operator === tag
+                                                        ? 'bg-[#262A34]/50 text-t3'
+                                                        : 'hover:bg-t2/30 hover:text-t3'
+                                                    }`}
+                                            >
+                                                {tag}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* FIELD
                             <div className="items-center p-2 bg-primary  rounded-lg ">
                                 <select
                                     value={field}
@@ -211,9 +258,9 @@ export default function LogSearchFilter({value, onChange, timeFilter, setTimeFil
                                         <option key={f} value={f} className='focus:outline-none outline-none ring-0'>{f}</option>
                                     ))}
                                 </select>
-                            </div>
+                            </div> */}
 
-                            {/* OPERATOR */}
+                            {/* OPERATOR
                             <div className="items-center p-2 bg-primary  rounded-lg ">
                                 <select
                                     value={operator}
@@ -224,23 +271,28 @@ export default function LogSearchFilter({value, onChange, timeFilter, setTimeFil
                                         <option key={op} value={op}>{op}</option>
                                     ))}
                                 </select>
-                            </div>
+                            </div> */}
 
                             {/* VALUE */}
                             <input
                                 value={val}
                                 onChange={(e) => setVal(e.target.value)}
                                 placeholder="value"
-                                className="bg-[#1f2330] px-3 py-2 rounded text-sm"
+                                className="bg-primary/50 px-4 py-3 rounded-md text-sm"
                             />
+
+                            {/* BETWEEN */}
+                            {operator === "is between" && (
+                                <span className="text-graph-TITLE text-[12px]">to</span>
+                            )}
 
                             {/* BETWEEN */}
                             {operator === "is between" && (
                                 <input
                                     value={valTo}
                                     onChange={(e) => setValTo(e.target.value)}
-                                    placeholder="to"
-                                    className="bg-[#1f2330] px-3 py-2 rounded text-sm"
+                                    placeholder="value"
+                                    className="bg-primary/50 px-4 py-3 rounded-md text-sm"
                                 />
                             )}
 

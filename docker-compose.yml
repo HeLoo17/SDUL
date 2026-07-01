@@ -1,4 +1,26 @@
 services:
+  influxdb:
+    image: influxdb:2.7
+    container_name: sdul-influxdb
+    restart: unless-stopped
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE:        setup
+      DOCKER_INFLUXDB_INIT_USERNAME:    ${INFLUXDB_ADMIN_USER:-admin}
+      DOCKER_INFLUXDB_INIT_PASSWORD:    ${INFLUXDB_ADMIN_PASSWORD:-adminpassword}
+      DOCKER_INFLUXDB_INIT_ORG:         ${INFLUXDB_ORG}
+      DOCKER_INFLUXDB_INIT_BUCKET:      ${INFLUXDB_BUCKET:-proxmox}
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUXDB_TOKEN}
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+      - influxdb_config:/etc/influxdb2
+    ports:
+      - "127.0.0.1:8086:8086"
+    healthcheck:
+      test: ["CMD", "influx", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+ 
   backend:
     build:
       context: ./backend
@@ -8,6 +30,7 @@ services:
     environment:
       FLASK_HOST: 0.0.0.0
       FLASK_PORT: 5000
+      INFLUXDB_URL: http://influxdb:8086
     expose:
       - "5000"
     restart: unless-stopped
@@ -22,7 +45,7 @@ services:
     build:
       context: ./frontend
       args:
-        VITE_API_URL: ${VITE_API_URL:-}
+        VITE_API_URL: ""
         VITE_API_KEY: ${DASHBOARD_API_KEY:-}
     ports:
       - "${FRONTEND_PORT:-80}:80"
