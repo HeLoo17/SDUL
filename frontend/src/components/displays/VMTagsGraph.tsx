@@ -1,10 +1,9 @@
 import {LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import type { VMTypeData } from "../../hooks/useChartData";
 import { useMemo, useState } from "react";
 
 
 type Props = {
-    data: VMTypeData[];
+    data: any[];
 };
 
 const COLORS = [
