@@ -9,6 +9,7 @@ done
 
 ORG="${INFLUXDB_ORG}"
 TOKEN="${INFLUX_TOKEN}"
+BUCKET="${INFLUXDB_BUCKET}"
 
 echo "Creating Flux tasks..."
 
@@ -24,11 +25,11 @@ influx task create \
   --flux '
 option task = {name: "downsample_5m", every: 5m, offset: 1m}
 
-from(bucket: "proxmox_raw")
+from(bucket: "'"$BUCKET"_raw'")
   |> range(start: -task.every * 2)
   |> filter(fn: (r) => r._measurement == "node_metrics" or r._measurement == "vm_metrics")
   |> aggregateWindow(every: 5m, fn: mean, createEmpty: false)
-  |> to(bucket: "proxmox_5m", org: "'"$ORG"'")
+  |> to(bucket: "'"$BUCKET"_5m'", org: "'"$ORG"'")
 '
 
 ########################################
@@ -43,11 +44,11 @@ influx task create \
   --flux '
 option task = {name: "downsample_1h", every: 1h, offset: 5m}
 
-from(bucket: "proxmox_5m")
+from(bucket: "'"$BUCKET"_5m'")
   |> range(start: -task.every * 2)
   |> filter(fn: (r) => r._measurement == "node_metrics" or r._measurement == "vm_metrics")
   |> aggregateWindow(every: 1h, fn: mean, createEmpty: false)
-  |> to(bucket: "proxmox_1h", org: "'"$ORG"'")
+  |> to(bucket: "'"$BUCKET"_1h'", org: "'"$ORG"'")
 '
 
 ########################################
@@ -62,11 +63,11 @@ influx task create \
   --flux '
 option task = {name: "downsample_1d", every: 1d, offset: 1h}
 
-from(bucket: "proxmox_1h")
+from(bucket: "'"$BUCKET"_1h'")
   |> range(start: -task.every * 2)
   |> filter(fn: (r) => r._measurement == "node_metrics" or r._measurement == "vm_metrics")
   |> aggregateWindow(every: 1d, fn: mean, createEmpty: false)
-  |> to(bucket: "proxmox_1d", org: "'"$ORG"'")
+  |> to(bucket: "'"$BUCKET"_1d'", org: "'"$ORG"'")
 '
 
 echo "Flux tasks created"
