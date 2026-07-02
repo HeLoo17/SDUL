@@ -15,16 +15,16 @@ export default function VMs() {
 
     const vms = transformVMs(rawVMs);
 
-    const { online, paused, offline } = useMemo(() => {
-        let online = 0, paused = 0, offline = 0;
+    const { online, paused, error } = useMemo(() => {
+        let online = 0, paused = 0, offline = 0, error = 0;
 
         for (const vm of vms) {
             if (vm.status === "running") online++;
             else if (vm.status === "paused") paused++;
-            else offline++;
+            else if (vm.status === "error") error++;
         }
 
-        return { online, paused, offline };
+        return { online, paused, offline, error };
     }, [vms]);
 
     return (
@@ -34,7 +34,7 @@ export default function VMs() {
                 <VM_KPICards title='TOTAL VM' data={vms.length} info='Registered' icon={deco.vmTotal} color="#3C90FF" />
                 <VM_KPICards title='RUNNING VM' data={online} info='Online' icon={deco.vmOnline} color="#4ADE80" />
                 <VM_KPICards title='PAUSED VM' data={paused} info='Paused' icon={navi.vmPaused} color="#FA9943" />
-                <VM_KPICards title='ERROR VM' data={offline} info='Needs Attention' icon={deco.vmOffline} color="#FFB4AB" />
+                <VM_KPICards title='ERROR VM' data={error} info='Needs Attention' icon={deco.vmOffline} color="#FFB4AB" />
             </div>
 
             <div className="w-full h-fit">
