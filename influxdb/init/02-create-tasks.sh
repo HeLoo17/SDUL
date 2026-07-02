@@ -12,11 +12,7 @@ echo "Creating Flux tasks..."
 ########################################
 # RAW → 5m
 ########################################
-$INFLUX task create \
-  --name "downsample_5m" \
-  --every 5m \
-  --offset 1m \
-  --flux "
+$INFLUX task create "
 option task = {name: \"downsample_5m\", every: 5m, offset: 1m}
 
 from(bucket: \"${BUCKET}_raw\")
@@ -29,11 +25,7 @@ from(bucket: \"${BUCKET}_raw\")
 ########################################
 # 5m → 1h
 ########################################
-$INFLUX task create \
-  --name "downsample_1h" \
-  --every 1h \
-  --offset 5m \
-  --flux "
+$INFLUX task create "
 option task = {name: \"downsample_1h\", every: 1h, offset: 5m}
 
 from(bucket: \"${BUCKET}_5m\")
@@ -46,11 +38,7 @@ from(bucket: \"${BUCKET}_5m\")
 ########################################
 # 1h → 1d
 ########################################
-$INFLUX task create \
-  --name "downsample_1d" \
-  --every 1d \
-  --offset 1h \
-  --flux "
+$INFLUX task create "
 option task = {name: \"downsample_1d\", every: 1d, offset: 1h}
 
 from(bucket: \"${BUCKET}_1h\")
