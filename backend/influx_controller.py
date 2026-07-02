@@ -19,6 +19,12 @@ from influxdb_client.domain.write_precision import WritePrecision
 class InfluxController:
     def __init__(self, url: str, token: str, org: str, bucket: str):
         self.bucket = bucket
+        self.buckets = {
+            "raw": bucket + "_raw",
+            "5m": bucket + "_5m",
+            "1h": bucket + "_1h",
+            "1d": bucket + "_1d"
+        }
         self.org = org
         self.client = InfluxDBClient(url=url, token=token, org=org)
         self.write_api = self.client.write_api(write_options=SYNCHRONOUS)
@@ -73,7 +79,7 @@ class InfluxController:
 
             points.append(p)
 
-        self.write_api.write(bucket=self.bucket, org=self.org, record=points)
+        self.write_api.write(bucket=self.buckets["raw"], org=self.org, record=points)
 
     # Write a data point per VM
     def write_vms(self, vms: list[dict]):
@@ -116,7 +122,7 @@ class InfluxController:
 
             points.append(p)
 
-        self.write_api.write(bucket=self.bucket, org=self.org, record=points)
+        self.write_api.write(bucket=self.buckets["raw"], org=self.org, record=points)
 
     # Single call to write both, used by collector loop
     def write_all(self, nodes: list[dict], vms: list[dict]):
@@ -124,12 +130,22 @@ class InfluxController:
         self.write_vms(vms)
 
     # --- Query Functions ---
+    # Query helpers to target which bucket to query based on time range
+    def _select_bucket(self, hours: int) -> str:
+        if hours <= 24:
+            return self.buckets["raw"]
+        elif hours <= 7 * 24:
+            return self.buckets["5m"]
+        elif hours <= 30 * 24:
+            return self.buckets["1h"]
+        else:
+            return self.buckets["1d"]
     # Raw metrics of a single node over N hours
     # Return: time, cpu_used, maxcpu, mem_used, mem_total, disk_usage, disk_total,
     #         uptime, netin, netout, diskread, diskwrite, status_online
     def query_node_history(self, node_name: str, hours: int=24) -> list[dict]:
         query = f'''
-         from(bucket: "{self.bucket}")
+         from(bucket: "{self._select_bucket(hours)}")
            |> range(start: -{hours}h)
            |> filter(fn: (r) => r._measurement == "node_metrics")
            |> filter(fn: (r) => r.node == "{node_name}")
@@ -143,7 +159,7 @@ class InfluxController:
     #         uptime, netin, netout, status_online
     def query_vm_history(self, vmid: int, hours: int = 24) -> list[dict]:
         query = f'''
-        from(bucket: "{self.bucket}")
+        from(bucket: "{self._select_bucket(hours)}")
             |> range(start: -{hours}h)
             |> filter(fn: (r) => r._measurement == "vm_metrics")
             |> filter(fn: (r) => r.vmid == "{vmid}")
@@ -156,7 +172,7 @@ class InfluxController:
     # Return all data of all nodes on the same timestamp
     def query_cluster_history(self, hours: int = 24) -> list[dict]:
         query = f'''
-        from(bucket: "{self.bucket}")
+        from(bucket: "{self._select_bucket(hours)}")
             |> range(start: -{hours}h)
             |> filter(fn: (r) => r._measurement == "node_metrics")
             |> pivot(rowKey: ["_time", "node"], columnKey: ["_field"], valueColumn: "_value")
