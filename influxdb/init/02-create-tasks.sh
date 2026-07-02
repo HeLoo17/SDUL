@@ -4,15 +4,14 @@ set -e
 ORG="${INFLUXDB_ORG}"
 TOKEN="${INFLUX_TOKEN}"
 BUCKET="${INFLUXDB_BUCKET}"
-
-INFLUX="influx --host http://influxdb:8086 --org $ORG --token $TOKEN"
+HOST="http://influxdb:8086"
 
 echo "Creating Flux tasks..."
 
 ########################################
 # RAW → 5m
 ########################################
-$INFLUX task create "
+influx task create "
 option task = {name: \"downsample_5m\", every: 5m, offset: 1m}
 
 from(bucket: \"${BUCKET}_raw\")
@@ -20,12 +19,12 @@ from(bucket: \"${BUCKET}_raw\")
   |> filter(fn: (r) => r._measurement == \"node_metrics\" or r._measurement == \"vm_metrics\")
   |> aggregateWindow(every: 5m, fn: mean, createEmpty: false)
   |> to(bucket: \"${BUCKET}_5m\")
-"
+" --host "$HOST" --org "$ORG" --token "$TOKEN"
 
 ########################################
 # 5m → 1h
 ########################################
-$INFLUX task create "
+influx task create "
 option task = {name: \"downsample_1h\", every: 1h, offset: 5m}
 
 from(bucket: \"${BUCKET}_5m\")
@@ -33,12 +32,12 @@ from(bucket: \"${BUCKET}_5m\")
   |> filter(fn: (r) => r._measurement == \"node_metrics\" or r._measurement == \"vm_metrics\")
   |> aggregateWindow(every: 1h, fn: mean, createEmpty: false)
   |> to(bucket: \"${BUCKET}_1h\")
-"
+" --host "$HOST" --org "$ORG" --token "$TOKEN"
 
 ########################################
 # 1h → 1d
 ########################################
-$INFLUX task create "
+influx task create "
 option task = {name: \"downsample_1d\", every: 1d, offset: 1h}
 
 from(bucket: \"${BUCKET}_1h\")
@@ -46,6 +45,6 @@ from(bucket: \"${BUCKET}_1h\")
   |> filter(fn: (r) => r._measurement == \"node_metrics\" or r._measurement == \"vm_metrics\")
   |> aggregateWindow(every: 1d, fn: mean, createEmpty: false)
   |> to(bucket: \"${BUCKET}_1d\")
-"
+" --host "$HOST" --org "$ORG" --token "$TOKEN"
 
 echo "Tasks created."
