@@ -4,56 +4,52 @@ services:
     container_name: sdul-influxdb
     restart: unless-stopped
     environment:
-      INFLUX_TOKEN: ${INFLUXDB_TOKEN}
-      DOCKER_INFLUXDB_INIT_MODE:        setup
-      DOCKER_INFLUXDB_INIT_USERNAME:    ${INFLUXDB_ADMIN_USER:-admin}
-      DOCKER_INFLUXDB_INIT_PASSWORD:    ${INFLUXDB_ADMIN_PASSWORD:-adminpassword}
-      DOCKER_INFLUXDB_INIT_ORG:         ${INFLUXDB_ORG}
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUXDB_ADMIN_USER:-admin}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUXDB_ADMIN_PASSWORD:-adminpassword}
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUXDB_ORG}
       DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUXDB_TOKEN}
-      DOCKER_INFLUXDB_INIT_BUCKET:      ${INFLUXDB_BUCKET}_raw 
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUXDB_BUCKET}_raw
     volumes:
       - influxdb_data:/var/lib/influxdb2
       - influxdb_config:/etc/influxdb2
-      - ./influxdb/init:/docker-entrypoint-initdb.d
     ports:
       - "127.0.0.1:8086:8086"
     healthcheck:
       test: ["CMD", "influx", "ping"]
       interval: 10s
       timeout: 5s
-      retries: 5
- 
+      retries: 10
+
+  influx-init:
+    image: influxdb:2.7
+    container_name: sdul-influx-init
+    depends_on:
+      - influxdb
+    volumes:
+      - ./influxdb/init:/scripts
+    entrypoint: ["bash", "/scripts/init.sh"]
+    environment:
+      INFLUX_TOKEN: ${INFLUXDB_TOKEN}
+      INFLUXDB_ORG: ${INFLUXDB_ORG}
+      INFLUXDB_BUCKET: ${INFLUXDB_BUCKET}
+    restart: "no"
+
   backend:
     build:
       context: ./backend
-    env_file:
-      - path: ./backend/.env
-        required: false
     environment:
-      FLASK_HOST: 0.0.0.0
-      FLASK_PORT: 5000
       INFLUXDB_URL: http://influxdb:8086
-    expose:
-      - "5000"
+      INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
+      INFLUXDB_ORG: ${INFLUXDB_ORG}
+      INFLUXDB_BUCKET: ${INFLUXDB_BUCKET}
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "python -c \"import os, urllib.request; req=urllib.request.Request('http://127.0.0.1:5000/api/status', headers={'X-API-Key': os.environ.get('DASHBOARD_API_KEY', '')}); urllib.request.urlopen(req, timeout=5).read()\""]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
 
   frontend:
     build:
       context: ./frontend
-      args:
-        VITE_API_URL: ""
-        VITE_API_KEY: ${DASHBOARD_API_KEY:-}
     ports:
       - "${FRONTEND_PORT:-80}:80"
-    depends_on:
-      backend:
-        condition: service_started
     restart: unless-stopped
 
 volumes:

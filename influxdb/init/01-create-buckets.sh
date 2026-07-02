@@ -1,8 +1,9 @@
 #!/bin/bash
 set -e
+
 echo "Waiting for InfluxDB..."
 
-until influx ping >/dev/null 2>&1; do
+until influx ping --host http://influxdb:8086 >/dev/null 2>&1; do
   sleep 2
 done
 
@@ -12,28 +13,25 @@ BUCKET="${INFLUXDB_BUCKET}"
 
 echo "Creating buckets..."
 
-influx bucket create \
-  --name "${BUCKET}_raw" \
-  --org "$ORG" \
-  --retention 168h \
-  --token "$TOKEN" || true
+create_bucket () {
+  NAME=$1
+  RETENTION=$2
 
-influx bucket create \
-  --name "${BUCKET}_5m" \
-  --org "$ORG" \
-  --retention 720h \
-  --token "$TOKEN" || true
+  influx bucket create \
+    --host http://influxdb:8086 \
+    --org "$ORG" \
+    --token "$TOKEN" \
+    --name "$NAME" \
+    --retention "$RETENTION" || true
+}
 
-influx bucket create \
-  --name "${BUCKET}_1h" \
-  --org "$ORG" \
-  --retention 2160h \
-  --token "$TOKEN" || true
+create_bucket "${BUCKET}_raw" 168h
+create_bucket "${BUCKET}_5m" 720h
+create_bucket "${BUCKET}_1h" 2160h
+create_bucket "${BUCKET}_1d" 0
 
-influx bucket create \
-  --name "${BUCKET}_1d" \
-  --org "$ORG" \
-  --retention 0 \
-  --token "$TOKEN" || true
+echo "Creating Flux tasks..."
 
-echo "Buckets created"
+bash /scripts/tasks.sh
+
+echo "Initialization complete."
