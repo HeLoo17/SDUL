@@ -15,7 +15,7 @@ influx task create "
 option task = {name: \"downsample_5m\", every: 5m, offset: 1m}
 
 from(bucket: \"${BUCKET}_raw\")
-  |> range(start: -task.every * 2)
+  |> range(start: -2 * task.every)
   |> filter(fn: (r) => r._measurement == \"node_metrics\" or r._measurement == \"vm_metrics\")
   |> aggregateWindow(every: 5m, fn: mean, createEmpty: false)
   |> to(bucket: \"${BUCKET}_5m\")
@@ -28,7 +28,7 @@ influx task create "
 option task = {name: \"downsample_1h\", every: 1h, offset: 5m}
 
 from(bucket: \"${BUCKET}_5m\")
-  |> range(start: -task.every * 2)
+  |> range(start: -2 * task.every)
   |> filter(fn: (r) => r._measurement == \"node_metrics\" or r._measurement == \"vm_metrics\")
   |> aggregateWindow(every: 1h, fn: mean, createEmpty: false)
   |> to(bucket: \"${BUCKET}_1h\")
@@ -41,7 +41,7 @@ influx task create "
 option task = {name: \"downsample_1d\", every: 1d, offset: 1h}
 
 from(bucket: \"${BUCKET}_1h\")
-  |> range(start: -task.every * 2)
+  |> range(start: -2 * task.every)
   |> filter(fn: (r) => r._measurement == \"node_metrics\" or r._measurement == \"vm_metrics\")
   |> aggregateWindow(every: 1d, fn: mean, createEmpty: false)
   |> to(bucket: \"${BUCKET}_1d\")
