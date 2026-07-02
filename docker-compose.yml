@@ -28,7 +28,7 @@ services:
       - influxdb
     volumes:
       - ./influxdb/init:/scripts
-    entrypoint: ["bash", "/scripts/init.sh"]
+    entrypoint: ["bash", "/scripts/01-create-buckets.sh"]
     environment:
       INFLUX_TOKEN: ${INFLUXDB_TOKEN}
       INFLUXDB_ORG: ${INFLUXDB_ORG}

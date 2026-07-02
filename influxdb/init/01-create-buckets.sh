@@ -32,6 +32,6 @@ create_bucket "${BUCKET}_1d" 0
 
 echo "Creating Flux tasks..."
 
-bash /scripts/tasks.sh
+bash /scripts/02-create-tasks.sh
 
 echo "Initialization complete."
