@@ -7,7 +7,7 @@ until influx ping >/dev/null 2>&1; do
 done
 
 ORG="${INFLUXDB_ORG}"
-TOKEN="${INFLUXDB_TOKEN}"
+TOKEN="${INFLUX_TOKEN}"
 BUCKET="${INFLUXDB_BUCKET}"
 
 echo "Creating buckets..."
